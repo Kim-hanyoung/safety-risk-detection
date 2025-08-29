@@ -206,6 +206,26 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Python venv
+# venv
 .venv/
 venv
+
+# python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# node
+frontend/node_modules/
+frontend/.vite/
+frontend/build/
+frontend/dist/
+
+# models & data (대용량은 제외, 예외만 허용)
+backend/models/**
+!backend/models/.gitkeep
+
+data/**
+!data/README.md
+!data/sample/**
