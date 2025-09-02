@@ -12,6 +12,7 @@ import SiteHeader from "@/components/layout/SiteHeader";
 import SiteFooter from "@/components/layout/SiteFooter";
 import ImageAnalysis from "./pages/ImageAnalysis";
 import RiskReport from "./pages/RiskReport";
+import About from "./pages/About";
 import VideoDetection from "./pages/VideoDetection";
 import Auth from "./pages/Auth";
 import Forum from "./pages/Forum";
@@ -33,6 +34,7 @@ const App = () => (
             <main className="flex-1">
               <Routes>
                 <Route path="/" element={<Index />} />
+                <Route path="/about" element={<About />} />
                 <Route path="/risk-report" element={<RiskReport />} />
                 <Route path="/image-analysis" element={<ImageAnalysis />} />
                 <Route path="/video-detection" element={<VideoDetection />} />
