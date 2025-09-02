@@ -1,0 +1,179 @@
+/** @import must precede all other statements */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /**
+   * Tailwind CSS theme
+   * tailwind.config.ts expects the following color variables to be expressed as HSL values.
+   * A different format will require also updating the theme in tailwind.config.ts.
+  */
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 28 94% 52%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 48 96% 89%;
+    --secondary-foreground: 28 94% 20%;
+
+    --muted: 48 96% 93%;
+    --muted-foreground: 25 25% 38%;
+
+    --accent: 210 90% 56%;
+    --accent-foreground: 210 90% 12%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 28 94% 52%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 28 20% 20%;
+
+    --sidebar-primary: 28 94% 52%;
+
+    --sidebar-primary-foreground: 0 0% 100%;
+
+    --sidebar-accent: 48 96% 92%;
+
+    --sidebar-accent-foreground: 28 94% 20%;
+
+    --sidebar-border: 40 25% 85%;
+
+    --sidebar-ring: 28 94% 52%;
+  }
+
+  .dark {
+    --background: 222.2 84% 6%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 6%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 6%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 28 94% 56%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 48 16% 18%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 48 16% 18%;
+    --muted-foreground: 48 30% 70%;
+
+    --accent: 210 90% 60%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 28 94% 56%;
+    --sidebar-background: 25 10% 12%;
+    --sidebar-foreground: 0 0% 98%;
+    --sidebar-primary: 28 94% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 48 10% 15%;
+    --sidebar-accent-foreground: 0 0% 98%;
+    --sidebar-border: 28 10% 20%;
+    --sidebar-ring: 28 94% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-family:
+      "Inter",
+      ui-sans-serif,
+      system-ui,
+      -apple-system,
+      Segoe UI,
+      Roboto,
+      Helvetica,
+      Arial,
+      "Apple Color Emoji",
+      "Segoe UI Emoji";
+  }
+}
+
+@layer utilities {
+  @keyframes safety-bounce {
+    0%,
+    100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-6%);
+    }
+  }
+  @keyframes safety-pulse {
+    0%,
+    100% {
+      transform: scale(1);
+      opacity: 1;
+    }
+    50% {
+      transform: scale(1.15);
+      opacity: 0.85;
+    }
+  }
+  @keyframes safety-rotate {
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+  }
+  .icon-bounce {
+    animation: safety-bounce 1.2s infinite ease-in-out;
+    display: inline-block;
+    will-change: transform;
+  }
+  .icon-pulse {
+    animation: safety-pulse 1.4s infinite ease-in-out;
+    display: inline-block;
+    will-change: transform, opacity;
+  }
+  .icon-rotate {
+    animation: safety-rotate 6s linear infinite;
+    display: inline-block;
+    will-change: transform;
+  }
+
+  @keyframes safety-shake {
+    0%,
+    100% {
+      transform: translateX(0);
+    }
+    50% {
+      transform: translateX(6%);
+    }
+  }
+  .shake-soft {
+    animation: safety-shake 2.2s ease-in-out infinite;
+  }
+}
