@@ -229,3 +229,4 @@ backend/models/**
 data/**
 !data/README.md
 !data/sample/**
+!frontend/lib
