@@ -1,213 +1,95 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { listPosts, createPost, Post } from "@/lib/posts";
+import { useAuth } from "@/context/auth";
+import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
-
-const categories = ["General", "Near-Miss Reports", "Best Practices", "Q&A"];
+import { Textarea } from "@/components/ui/textarea"; // 없다면 Input 두 개로 대체
 
 export default function Forum() {
-  const [active, setActive] = useState("General");
-  const [posts, setPosts] = useState([
-    {
-      id: "1",
-      title: "Helmet detection tips",
-      category: "Best Practices",
-      tags: ["PPE"],
-      author: "Mina",
-      replies: 4,
-      pinned: true,
-      starred: true,
-      time: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      title: "Near-miss on ladder",
-      category: "Near-Miss Reports",
-      tags: ["Fall"],
-      author: "Jin",
-      replies: 2,
-      pinned: false,
-      starred: false,
-      time: new Date().toISOString(),
-    },
-  ]);
+  const { user } = useAuth();
+  const [sp, setSp] = useSearchParams();
+  const tab = sp.get("category") === "reports" ? "reports" : "general";
 
-  const filtered = useMemo(
-    () => posts.filter((p) => p.category === active),
-    [posts, active],
-  );
+  const [page, setPage] = useState(1);
+  const [data, setData] = useState<{items: Post[]; total: number; page: number; page_size: number}>();
+  const [loading, setLoading] = useState(false);
 
-  const [draft, setDraft] = useState({
-    title: "",
-    category: "General",
-    body: "",
-  });
+  // 작성 폼 상태
+  const [openWrite, setOpenWrite] = useState(false);
+  const [title, setTitle] = useState("");
+  const [contentMd, setContentMd] = useState("");
+
+  async function load() {
+    setLoading(true);
+    try {
+      const res = await listPosts({ category: tab, page, page_size: 10 });
+      setData(res);
+    } finally {
+      setLoading(false);
+    }
+  }
+  useEffect(() => { setPage(1); }, [tab]);
+  useEffect(() => { load(); }, [tab, page]);
+
+  function switchTab(c: "general" | "reports") {
+    setSp({ category: c });
+  }
+
+  async function onCreate(e: React.FormEvent) {
+    e.preventDefault();
+    await createPost({ title, content_md: contentMd, category: tab as any });
+    setTitle(""); setContentMd(""); setOpenWrite(false);
+    load();
+  }
 
   return (
-    <div className="container mx-auto grid gap-6 py-8 lg:grid-cols-[1fr_320px]">
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Community Forum</h1>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>Create Post</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>New Post</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={draft.title}
-                    onChange={(e) =>
-                      setDraft({ ...draft, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Category</Label>
-                  <select
-                    className="mt-1 w-full rounded-md border bg-background p-2"
-                    value={draft.category}
-                    onChange={(e) =>
-                      setDraft({ ...draft, category: e.target.value })
-                    }
-                  >
-                    {categories.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <Label>Body</Label>
-                  <Textarea
-                    rows={6}
-                    value={draft.body}
-                    onChange={(e) =>
-                      setDraft({ ...draft, body: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Attach image (mock)
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setDraft({ title: "", category: "General", body: "" })
-                    }
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setPosts([
-                        {
-                          id: Math.random().toString(36).slice(2),
-                          title: draft.title || "Untitled",
-                          category: draft.category,
-                          tags: [],
-                          author: "You",
-                          replies: 0,
-                          pinned: false,
-                          starred: true,
-                          time: new Date().toISOString(),
-                        },
-                        ...posts,
-                      ]);
-                    }}
-                  >
-                    Publish
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+    <div className="container mx-auto max-w-4xl py-8 space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="inline-flex rounded border p-1">
+          <button
+            onClick={() => switchTab("general")}
+            className={`px-3 py-1 rounded ${tab==="general"?"bg-accent text-accent-foreground":""}`}
+          >General</button>
+          <button
+            onClick={() => switchTab("reports")}
+            className={`px-3 py-1 rounded ${tab==="reports"?"bg-accent text-accent-foreground":""}`}
+          >Reports</button>
         </div>
 
-        <Tabs value={active} onValueChange={setActive}>
-          <TabsList className="mb-3 flex flex-wrap gap-2 p-2">
-            {categories.map((c) => (
-              <TabsTrigger key={c} value={c}>
-                {c}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value={active}>
-            <div className="space-y-2">
-              {filtered.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/forum/${p.id}`}
-                  className="block rounded-lg border p-3 hover:bg-accent/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{p.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.author} • {new Date(p.time).toLocaleString()} •{" "}
-                        {p.replies} replies
-                      </p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.pinned ? "📌" : ""} {p.starred ? "⭐" : ""}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {filtered.length === 0 && (
-                <p className="text-sm text-muted-foreground">No posts yet.</p>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+        {user && (
+          <Button onClick={() => setOpenWrite(v=>!v)}>
+            {openWrite ? "Cancel" : (tab==="reports" ? "New Report" : "New Post")}
+          </Button>
+        )}
       </div>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Contributors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              <li>Jin — 124 pts</li>
-              <li>Mina — 118 pts</li>
-              <li>Hana — 95 pts</li>
-            </ul>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Safety Guidelines</CardTitle>
-            <CardDescription>Community code of conduct</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-1">
-            <p>• Be respectful and constructive.</p>
-            <p>• No personal data in posts or images.</p>
-            <p>• Tag posts appropriately.</p>
-          </CardContent>
-        </Card>
+      {openWrite && user && (
+        <form onSubmit={onCreate} className="space-y-3 border rounded p-4">
+          <Input placeholder="Title" value={title} onChange={e=>setTitle(e.target.value)} required />
+          {/* Textarea 컴포넌트가 없다면 <textarea className="border p-2 w-full h-40" .../>로 대체 */}
+          <Textarea placeholder="Write in Markdown…" value={contentMd} onChange={e=>setContentMd(e.target.value)} required />
+          <div className="text-right">
+            <Button type="submit">Publish</Button>
+          </div>
+        </form>
+      )}
+
+      <div className="space-y-3">
+        {loading && <div className="text-muted-foreground">Loading…</div>}
+        {!loading && data?.items.length === 0 && <div className="text-muted-foreground">No posts</div>}
+        {!loading && data?.items.map(p => (
+          <Link key={p.id} to={`/forum/${p.id}`} className="block border rounded p-4 hover:bg-accent/30">
+            <div className="text-sm text-muted-foreground">{p.category.toUpperCase()} · {new Date(p.created_at).toLocaleString()}</div>
+            <div className="text-lg font-semibold">{p.title}</div>
+            <div className="text-sm text-muted-foreground">by {p.author.name ?? p.author.email}</div>
+          </Link>
+        ))}
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" disabled={page<=1} onClick={()=>setPage(p=>p-1)}>Prev</Button>
+        <Button variant="outline" disabled={(data?.page||1)*10 >= (data?.total||0)} onClick={()=>setPage(p=>p+1)}>Next</Button>
       </div>
     </div>
   );

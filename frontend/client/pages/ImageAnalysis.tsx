@@ -1,213 +1,103 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
+import { analyzeImage, DetectRes } from "@/lib/detect";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import LoadingCard from "@/components/common/LoadingCard";
-import {
-  BadgeAlert,
-  Camera,
-  FileImage,
-  Loader2,
-  ShieldCheck,
-  TriangleAlert,
-} from "lucide-react";
+import { useAuth } from "@/context/auth";
+import { Link } from "react-router-dom";
 
 export default function ImageAnalysis() {
+  const { user } = useAuth();
   const [file, setFile] = useState<File | null>(null);
-  const [preview, setPreview] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [results, setResults] = useState<
-    Array<{
-      label: string;
-      severity: "low" | "medium" | "high";
-      description: string;
-    }>
-  >([]);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [model, setModel] = useState<"fire"|"ppe"|"both">("both");
+  const [publish, setPublish] = useState(false);
+  const [title, setTitle] = useState("");
+  const [res, setRes] = useState<DetectRes | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    return () => URL.revokeObjectURL(url);
-  }, [file]);
-
-  const runAnalysis = async (src: string) => {
-    setAnalyzing(true);
-    setProgress(0);
-    setResults([]);
-    const start = Date.now();
-
-    const timer = setInterval(() => {
-      setProgress((p) => Math.min(100, p + Math.random() * 20));
-    }, 300);
-
-    await new Promise((r) => setTimeout(r, 2200 + Math.random() * 600));
-    clearInterval(timer);
-    setProgress(100);
-
-    // Mocked results
-    setResults([
-      {
-        label: "No Helmet Detected",
-        severity: "high",
-        description: "A person appears without proper head protection.",
-      },
-      {
-        label: "Hi-Vis Clothing",
-        severity: "low",
-        description: "High-visibility jacket detected.",
-      },
-      {
-        label: "Blocked Pathway",
-        severity: "medium",
-        description: "Potential obstruction in walkway.",
-      },
-    ]);
-
-    // Ensure spinner is visible briefly
-    const elapsed = Date.now() - start;
-    if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
-    setAnalyzing(false);
-  };
-
-  const onSubmit = async () => {
-    if (preview) await runAnalysis(preview);
-  };
-
-  const useDemo = () => {
-    const demo =
-      "https://images.unsplash.com/photo-1581092921461-eab62e97a780?q=80&w=1600&auto=format&fit=crop";
-    setPreview(demo);
-    setFile(null);
-  };
+  async function onSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!file) { setErr("이미지를 선택하세요"); return; }
+    if (publish && !user) { setErr("게시하려면 로그인하세요"); return; }
+    setErr(null); setLoading(true); setRes(null);
+    try {
+      const out = await analyzeImage(file, model, publish, title || undefined);
+      setRes(out);
+    } catch (e: any) {
+      setErr(e?.message ?? "분석 실패");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
-    <div className="container mx-auto grid gap-6 py-10 lg:grid-cols-2">
-      <Card className="relative overflow-hidden">
-        <span className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/20 blur-2xl" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Camera className="h-6 w-6 text-primary" /> Image Analysis
-          </CardTitle>
-          <CardDescription>
-            Upload a photo to detect PPE and hazards.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <Input
-              ref={inputRef}
-              type="file"
-              accept="image/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
-            />
-            <Button onClick={() => inputRef.current?.click()} variant="outline">
-              <FileImage className="mr-2 h-4 w-4" /> Choose
-            </Button>
-          </div>
-          <div className="flex gap-3">
-            <Button onClick={onSubmit} disabled={!preview || analyzing}>
-              {analyzing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing
-                </>
-              ) : (
-                <>Run Analysis</>
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={useDemo}
-              disabled={analyzing}
-            >
-              Use demo image
-            </Button>
-          </div>
-          {analyzing ? (
-            <div className="mt-2">
-              <LoadingCard progress={progress} />
-            </div>
-          ) : (
-            <Progress value={progress} />
-          )}
-          {preview && (
-            <img
-              src={preview}
-              alt="Preview"
-              className="mt-2 aspect-video w-full rounded-lg object-cover shadow-sm ring-1 ring-border"
-            />
-          )}
-        </CardContent>
-      </Card>
+    <div className="container mx-auto max-w-3xl py-8 space-y-6">
+      <h1 className="text-2xl font-bold">Image Analysis</h1>
 
-      <Card className="relative overflow-hidden">
-        <span className="pointer-events-none absolute -left-10 -bottom-10 size-40 rounded-full bg-yellow-400/20 blur-2xl" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            Results
-          </CardTitle>
-          <CardDescription>Detected items and risk factors.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {analyzing && (
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" /> Analyzing image…
+      <form onSubmit={onSubmit} className="space-y-3 border rounded p-4">
+        <Input type="file" accept="image/*" onChange={e=>setFile(e.target.files?.[0] ?? null)} />
+        <div className="flex gap-3 text-sm">
+          <label className="inline-flex items-center gap-1">
+            <input type="radio" name="model" checked={model==="both"} onChange={()=>setModel("both")} /> both
+          </label>
+          <label className="inline-flex items-center gap-1">
+            <input type="radio" name="model" checked={model==="fire"} onChange={()=>setModel("fire")} /> fire/smoke
+          </label>
+          <label className="inline-flex items-center gap-1">
+            <input type="radio" name="model" checked={model==="ppe"} onChange={()=>setModel("ppe")} /> PPE
+          </label>
+        </div>
+
+        <label className="inline-flex items-center gap-2">
+          <input type="checkbox" checked={publish} onChange={e=>setPublish(e.target.checked)} />
+          분석 결과를 Reports 게시판에 자동 게시
+        </label>
+
+        {publish && (
+          <Input placeholder="게시글 제목 (선택)" value={title} onChange={e=>setTitle(e.target.value)} />
+        )}
+
+        <Button type="submit" disabled={loading}>{loading ? "Analyzing..." : "Analyze"}</Button>
+        {err && <div className="text-red-600 text-sm">{err}</div>}
+      </form>
+
+      {res && (
+        <div className="space-y-4">
+          <div className="grid md:grid-cols-2 gap-4">
+            <figure className="border rounded p-2">
+              <figcaption className="text-sm mb-2">Original</figcaption>
+              <img src={res.original_url} className="w-full rounded" />
+            </figure>
+            {Object.entries(res.annotated).map(([k, url]) => (
+              <figure key={k} className="border rounded p-2">
+                <figcaption className="text-sm mb-2">{k.toUpperCase()} annotated</figcaption>
+                <img src={url} className="w-full rounded" />
+              </figure>
+            ))}
+          </div>
+
+          <div className="border rounded p-4">
+            <div className="font-semibold mb-2">Detections ({res.detections.length})</div>
+            {res.detections.length === 0 ? (
+              <div className="text-sm text-muted-foreground">No detections</div>
+            ) : (
+              <ul className="text-sm space-y-1">
+                {res.detections.map((d, i) => (
+                  <li key={i}>
+                    {d.label} — {Math.round(d.conf*100)}% [{d.bbox.map(n=>n.toFixed(0)).join(", ")}]
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+
+          {res.post_id && (
+            <div className="text-sm">
+              게시 완료: <Link className="underline" to={`/forum/${res.post_id}?category=reports`}>보고서 보기</Link>
             </div>
           )}
-          {!analyzing && results.length === 0 && (
-            <div className="text-muted-foreground">
-              Upload an image and click Run Analysis to see results.
-            </div>
-          )}
-          {!analyzing && results.length > 0 && (
-            <ul className="space-y-3">
-              {results.map((r, i) => (
-                <li
-                  key={i}
-                  className="flex items-start justify-between rounded-lg border bg-card/60 p-4 backdrop-blur supports-[backdrop-filter]:bg-card/40"
-                >
-                  <div className="flex items-start gap-3">
-                    {r.severity === "high" ? (
-                      <TriangleAlert className="mt-0.5 h-5 w-5 text-red-500" />
-                    ) : r.severity === "medium" ? (
-                      <BadgeAlert className="mt-0.5 h-5 w-5 text-yellow-500" />
-                    ) : (
-                      <ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-500" />
-                    )}
-                    <div>
-                      <p className="font-medium">{r.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {r.description}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      r.severity === "high"
-                        ? "bg-red-500/10 text-red-600 ring-1 ring-red-500/30"
-                        : r.severity === "medium"
-                          ? "bg-yellow-400/10 text-yellow-600 ring-1 ring-yellow-400/30"
-                          : "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/30"
-                    }`}
-                  >
-                    {r.severity.toUpperCase()}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </CardContent>
-      </Card>
+        </div>
+      )}
     </div>
   );
 }
