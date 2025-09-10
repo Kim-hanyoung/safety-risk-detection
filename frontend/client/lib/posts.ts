@@ -8,6 +8,16 @@ export type Post = {
   author: { id: string; email: string; name?: string | null };
   created_at: string;
   updated_at?: string | null;
+
+  // 추가
+  meta?: {
+    risk?: { score: number; level: string };
+    llm?: { used: boolean; error?: string; model?: string };
+    [k: string]: any;
+  };
+  
+  // 서버가 댓글을 함께 내려올 경우(선택)
+  comments?: Array<{ id: string; author_id: string; content: string; created_at: string }>;
 };
 
 export type Page<T> = { items: T[]; total: number; page: number; page_size: number };

@@ -13,6 +13,7 @@ from .routers import auth
 from .routers import post
 from .routers import detect
 
+
 app = FastAPI(title="Safety Risk Detection API")
 
 app.add_middleware(
@@ -38,6 +39,7 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 app.include_router(auth.router)
 app.include_router(post.router)
 app.include_router(detect.router)
+
 
 @app.get("/health")
 def health():

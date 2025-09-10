@@ -35,3 +35,4 @@ ultralytics
 passlib[bcrypt]
 pydantic[email]
 python-multipart
+google-generativeai

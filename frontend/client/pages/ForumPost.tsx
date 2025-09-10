@@ -6,6 +6,9 @@ import { useAuth } from "@/context/auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea"; // 없으면 <textarea>로 대체
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+
 
 export default function ForumPost() {
   const { id } = useParams();
@@ -91,12 +94,31 @@ export default function ForumPost() {
           <div className="text-sm text-muted-foreground">
             {post.category.toUpperCase()} · {new Date(post.created_at).toLocaleString()}
           </div>
+
           {!editing ? (
             <h1 className="text-2xl font-bold">{post.title}</h1>
           ) : (
             <Input value={title} onChange={e=>setTitle(e.target.value)} />
           )}
-          <div className="text-sm text-muted-foreground">by {post.author.name ?? post.author.email}</div>
+
+          <div className="text-sm text-muted-foreground">
+            by {post.author.name ?? post.author.email}
+          </div>
+
+          {/* ⬇⬇ 여기 추가 */}
+          {("meta" in post) && (post as any).meta?.llm && (
+            <div className="mt-1 text-xs text-muted-foreground">
+              LLM: {(post as any).meta.llm.used ? "사용" : "미사용"}
+              {(post as any).meta.llm.error ? ` (에러: ${(post as any).meta.llm.error})` : ""}
+            </div>
+          )}
+          {/* LLM 사용 여부 아래에 추가 */}
+          {post.meta?.risk && (
+            <div className="mt-1 text-xs">
+              위험도: <b>{post.meta.risk.level}</b> (score {post.meta.risk.score})
+            </div>
+          )}
+
         </div>
 
         {isOwner && (
@@ -117,7 +139,21 @@ export default function ForumPost() {
       </div>
 
       {!editing ? (
-        <pre className="whitespace-pre-wrap">{post.content_md}</pre>
+        <div className="prose max-w-none">
+          <ReactMarkdown
+            remarkPlugins={[remarkGfm]}
+            components={{
+              a:   (props) => <a {...props} target="_blank" rel="noreferrer" className="text-primary underline" />,
+              img: ({ src = "", alt, ...rest }) => (
+                <a href={src} target="_blank" rel="noreferrer">
+                  <img src={src} alt={alt} {...rest} className="rounded" />
+                </a>
+              ),
+            }}
+          >
+            {post.content_md}
+          </ReactMarkdown>
+        </div>
       ) : (
         <Textarea className="min-h-[200px]" value={contentMd} onChange={e=>setContentMd(e.target.value)} />
       )}
