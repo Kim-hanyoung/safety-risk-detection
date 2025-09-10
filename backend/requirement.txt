@@ -32,3 +32,6 @@ pyjwt
 sqlalchemy
 pydantic-settings
 ultralytics
+passlib[bcrypt]
+pydantic[email]
+python-multipart

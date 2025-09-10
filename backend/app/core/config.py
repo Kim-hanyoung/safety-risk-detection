@@ -12,8 +12,13 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "uploads"
 
     YOLO_FIRE_SMOKE_WEIGHTS: str = "weights/firesomkebest.pt"  
-    YOLO_PPE_WEIGHTS: str = "weights/ppebest.pt"                
+    YOLO_PPE_WEIGHTS: str = "weights/ppebest.pt"    
 
+    YOLO_FIRE_SMOKE_LABELS_JSON: str = "weights/firesmokelabels.json"
+    YOLO_PPE_LABELS_JSON: str = "weight/ppelabels.json"    
+        
+    # (선택) 기본 임계치
+    YOLO_DEFAULT_CONF: float = 0.25
 
     # .env 자동 로드
     model_config = SettingsConfigDict(

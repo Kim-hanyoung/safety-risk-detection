@@ -17,7 +17,6 @@ class Post(Base):
     meta = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
-
     author = relationship("User", lazy="joined")
     comments = relationship("Comment", back_populates="post", lazy="selectin",cascade="all, delete-orphan")
 

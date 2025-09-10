@@ -26,6 +26,10 @@ export default defineConfig(({ mode }) => ({
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ""),
       },
+      "/uploads": {
+        target: "http://127.0.0.1:8000",
+        changeOrigin: true
+      },
     },
   },
 
