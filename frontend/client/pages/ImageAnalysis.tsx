@@ -1,213 +1,247 @@
-import { useEffect, useRef, useState } from "react";
-import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Progress } from "@/components/ui/progress";
-import LoadingCard from "@/components/common/LoadingCard";
-import {
-  BadgeAlert,
-  Camera,
-  FileImage,
-  Loader2,
-  ShieldCheck,
-  TriangleAlert,
-} from "lucide-react";
+// frontend/client/pages/ImageAnalysis.tsx
+import React, { useEffect, useState } from "react";
+
+type Item = {
+  label: string;
+  severity: "low" | "medium" | "high" | string;
+  description: string;
+};
+
+type AnalyzeResponse = {
+  items: Item[];
+  llm_summary?: string | null;
+};
+
+const raw = (import.meta as any).env?.VITE_API_BASE?.toString().trim();
+const API_BASE =
+  raw && /^https?:\/\//i.test(raw) ? raw.replace(/\/+$/, "") : "http://127.0.0.1:8000";
+
 
 export default function ImageAnalysis() {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [analyzing, setAnalyzing] = useState(false);
-  const [results, setResults] = useState<
-    Array<{
-      label: string;
-      severity: "low" | "medium" | "high";
-      description: string;
-    }>
-  >([]);
-  const inputRef = useRef<HTMLInputElement | null>(null);
+  const [progress, setProgress] = useState(0);
+  const [results, setResults] = useState<Item[]>([]);
+  const [summary, setSummary] = useState<string>("");
 
+  // 파일 선택 시 미리보기 생성
   useEffect(() => {
-    if (!file) return;
+    if (!file) {
+      setPreview(null);
+      return;
+    }
     const url = URL.createObjectURL(file);
     setPreview(url);
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const runAnalysis = async (src: string) => {
+  const onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0];
+    setFile(f ?? null);
+  };
+
+  const runAnalysis = async () => {
+    if (!file) return;
     setAnalyzing(true);
     setProgress(0);
     setResults([]);
-    const start = Date.now();
+    setSummary("");
 
+    // 진행바 시각효과
     const timer = setInterval(() => {
-      setProgress((p) => Math.min(100, p + Math.random() * 20));
-    }, 300);
+      setProgress((p) => Math.min(95, p + Math.random() * 8));
+    }, 250);
 
-    await new Promise((r) => setTimeout(r, 2200 + Math.random() * 600));
-    clearInterval(timer);
-    setProgress(100);
+    try {
+      const form = new FormData();
+      form.append("file", file);
 
-    // Mocked results
-    setResults([
-      {
-        label: "No Helmet Detected",
-        severity: "high",
-        description: "A person appears without proper head protection.",
-      },
-      {
-        label: "Hi-Vis Clothing",
-        severity: "low",
-        description: "High-visibility jacket detected.",
-      },
-      {
-        label: "Blocked Pathway",
-        severity: "medium",
-        description: "Potential obstruction in walkway.",
-      },
-    ]);
+      const res = await fetch(`${API_BASE}/api/image/analyze`, {
+        method: "POST",
+        body: form,
+      });
 
-    // Ensure spinner is visible briefly
-    const elapsed = Date.now() - start;
-    if (elapsed < 1000) await new Promise((r) => setTimeout(r, 1000 - elapsed));
-    setAnalyzing(false);
+      if (!res.ok) {
+        const t = await res.text();
+        throw new Error(t || `HTTP ${res.status}`);
+      }
+
+      const data: AnalyzeResponse = await res.json();
+      setResults(data.items ?? []);
+      setSummary(data.llm_summary ?? "");
+    } catch (err: any) {
+      setResults([
+        {
+          label: "Analysis failed",
+          severity: "high",
+          description: String(err?.message || err),
+        },
+      ]);
+    } finally {
+      clearInterval(timer);
+      setProgress(100);
+      setAnalyzing(false);
+      setTimeout(() => setProgress(0), 700);
+    }
   };
 
-  const onSubmit = async () => {
-    if (preview) await runAnalysis(preview);
-  };
-
-  const useDemo = () => {
-    const demo =
-      "https://images.unsplash.com/photo-1581092921461-eab62e97a780?q=80&w=1600&auto=format&fit=crop";
-    setPreview(demo);
-    setFile(null);
+  const SeverityTag: React.FC<{ s: Item["severity"] }> = ({ s }) => {
+    const style =
+      s === "high"
+        ? { background: "#fee2e2", color: "#991b1b" }
+        : s === "medium"
+        ? { background: "#fef3c7", color: "#92400e" }
+        : { background: "#dcfce7", color: "#14532d" };
+    return (
+      <span style={{ ...style, padding: "2px 8px", borderRadius: 8, fontSize: 12 }}>
+        {s}
+      </span>
+    );
   };
 
   return (
-    <div className="container mx-auto grid gap-6 py-10 lg:grid-cols-2">
-      <Card className="relative overflow-hidden">
-        <span className="pointer-events-none absolute -right-10 -top-10 size-40 rounded-full bg-primary/20 blur-2xl" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            <Camera className="h-6 w-6 text-primary" /> Image Analysis
-          </CardTitle>
-          <CardDescription>
+    <div style={{ padding: 20 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        {/* 왼쪽: 업로드/실행 */}
+        <div
+          style={{
+            background: "linear-gradient(135deg,#fff, #fde9d6)",
+            borderRadius: 16,
+            padding: 20,
+            border: "1px solid #eee",
+          }}
+        >
+          <h2 style={{ fontSize: 24, marginBottom: 6 }}>Image Analysis</h2>
+          <p style={{ marginTop: 0, color: "#666" }}>
             Upload a photo to detect PPE and hazards.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid gap-3 sm:grid-cols-[1fr_auto]">
-            <Input
-              ref={inputRef}
+          </p>
+
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 16 }}>
+            <input
               type="file"
               accept="image/*"
-              onChange={(e) => setFile(e.target.files?.[0] || null)}
+              onChange={onChangeFile}
+              style={{ flex: 1 }}
             />
-            <Button onClick={() => inputRef.current?.click()} variant="outline">
-              <FileImage className="mr-2 h-4 w-4" /> Choose
-            </Button>
-          </div>
-          <div className="flex gap-3">
-            <Button onClick={onSubmit} disabled={!preview || analyzing}>
-              {analyzing ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Analyzing
-                </>
-              ) : (
-                <>Run Analysis</>
-              )}
-            </Button>
-            <Button
-              type="button"
-              variant="secondary"
-              onClick={useDemo}
-              disabled={analyzing}
+            <button
+              onClick={runAnalysis}
+              disabled={!file || analyzing}
+              style={{
+                background: analyzing ? "#ddd" : "#f59e0b",
+                color: "#111",
+                border: "none",
+                padding: "10px 14px",
+                borderRadius: 8,
+                cursor: !file || analyzing ? "not-allowed" : "pointer",
+                fontWeight: 600,
+              }}
             >
-              Use demo image
-            </Button>
+              {analyzing ? "Analyzing…" : "Run Analysis"}
+            </button>
           </div>
-          {analyzing ? (
-            <div className="mt-2">
-              <LoadingCard progress={progress} />
-            </div>
-          ) : (
-            <Progress value={progress} />
-          )}
-          {preview && (
-            <img
-              src={preview}
-              alt="Preview"
-              className="mt-2 aspect-video w-full rounded-lg object-cover shadow-sm ring-1 ring-border"
-            />
-          )}
-        </CardContent>
-      </Card>
 
-      <Card className="relative overflow-hidden">
-        <span className="pointer-events-none absolute -left-10 -bottom-10 size-40 rounded-full bg-yellow-400/20 blur-2xl" />
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-2xl">
-            Results
-          </CardTitle>
-          <CardDescription>Detected items and risk factors.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {analyzing && (
-            <div className="flex items-center gap-3 text-muted-foreground">
-              <Loader2 className="h-5 w-5 animate-spin" /> Analyzing image…
+          {/* 진행바 */}
+          <div
+            style={{
+              height: 10,
+              background: "#f5f5f5",
+              borderRadius: 8,
+              marginTop: 18,
+              overflow: "hidden",
+            }}
+          >
+            <div
+              style={{
+                width: `${progress}%`,
+                height: "100%",
+                background: "#fde68a",
+                transition: "width 0.25s linear",
+              }}
+            />
+          </div>
+
+          {/* 미리보기 */}
+          {preview && (
+            <div style={{ marginTop: 16 }}>
+              <img
+                src={preview}
+                alt="preview"
+                style={{ maxWidth: "100%", borderRadius: 12, border: "1px solid #eee" }}
+              />
             </div>
           )}
-          {!analyzing && results.length === 0 && (
-            <div className="text-muted-foreground">
-              Upload an image and click Run Analysis to see results.
+        </div>
+
+        {/* 오른쪽: 결과 */}
+        <div
+          style={{
+            background: "linear-gradient(135deg, #fff, #fdf1cf)",
+            borderRadius: 16,
+            padding: 20,
+            border: "1px solid #eee",
+            minHeight: 300,
+          }}
+        >
+          <h2 style={{ fontSize: 24, marginBottom: 6 }}>Results</h2>
+          <p style={{ marginTop: 0, color: "#666" }}>
+            Detected items and risk factors.
+          </p>
+
+          {!analyzing && results.length === 0 && !summary && (
+            <p style={{ color: "#777", marginTop: 20 }}>
+              Upload an image and click <b>Run Analysis</b> to see results.
+            </p>
+          )}
+
+          {/* LLM 요약 */}
+          {!analyzing && summary && (
+            <div
+              style={{
+                border: "1px solid #eee",
+                background: "#fafafa",
+                borderRadius: 12,
+                padding: 12,
+                marginTop: 8,
+                whiteSpace: "pre-wrap",
+              }}
+            >
+              <div style={{ fontWeight: 700, marginBottom: 6 }}>Summary</div>
+              <div style={{ fontSize: 14, lineHeight: 1.6 }}>{summary}</div>
             </div>
           )}
-          {!analyzing && results.length > 0 && (
-            <ul className="space-y-3">
-              {results.map((r, i) => (
-                <li
-                  key={i}
-                  className="flex items-start justify-between rounded-lg border bg-card/60 p-4 backdrop-blur supports-[backdrop-filter]:bg-card/40"
+
+          {/* 디텍션 리스트 */}
+          {results.length > 0 && (
+            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
+              {results.map((it, idx) => (
+                <div
+                  key={idx}
+                  style={{
+                    border: "1px solid #eee",
+                    borderRadius: 10,
+                    padding: 10,
+                    background: "#fff",
+                  }}
                 >
-                  <div className="flex items-start gap-3">
-                    {r.severity === "high" ? (
-                      <TriangleAlert className="mt-0.5 h-5 w-5 text-red-500" />
-                    ) : r.severity === "medium" ? (
-                      <BadgeAlert className="mt-0.5 h-5 w-5 text-yellow-500" />
-                    ) : (
-                      <ShieldCheck className="mt-0.5 h-5 w-5 text-emerald-500" />
-                    )}
-                    <div>
-                      <p className="font-medium">{r.label}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {r.description}
-                      </p>
-                    </div>
-                  </div>
-                  <span
-                    className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                      r.severity === "high"
-                        ? "bg-red-500/10 text-red-600 ring-1 ring-red-500/30"
-                        : r.severity === "medium"
-                          ? "bg-yellow-400/10 text-yellow-600 ring-1 ring-yellow-400/30"
-                          : "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/30"
-                    }`}
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 6,
+                    }}
                   >
-                    {r.severity.toUpperCase()}
-                  </span>
-                </li>
+                    <div style={{ fontWeight: 600 }}>{it.label}</div>
+                    <SeverityTag s={it.severity} />
+                  </div>
+                  <div style={{ color: "#555", fontSize: 14 }}>{it.description}</div>
+                </div>
               ))}
-            </ul>
+            </div>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
