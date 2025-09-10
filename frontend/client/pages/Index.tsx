@@ -1,90 +1,15 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import {
-  ChartContainer,
-  ChartLegend,
-  ChartLegendContent,
-  ChartTooltip,
-  ChartTooltipContent,
-} from "@/components/ui/chart";
-import {
-  Area,
-  AreaChart,
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Line,
-  LineChart,
-  XAxis,
-  YAxis,
-} from "recharts";
-import {
-  Camera,
-  HardHat,
-  Shield,
-  TrafficCone,
-  TriangleAlert,
-} from "lucide-react";
+import { HardHat, Shield, TrafficCone, TriangleAlert, Camera } from "lucide-react";
 import { Link } from "react-router-dom";
 import { AboutDialog } from "@/components/AboutDialog";
+// 상대 경로는 프로젝트 설정에 맞춰 유지
+import TableauEmbed from "../components/TableauEmbed";
 
 export default function Index() {
-  const monthly = useMemo(
-    () => [
-      { month: "Jan", incidents: 14, near: 22 },
-      { month: "Feb", incidents: 11, near: 17 },
-      { month: "Mar", incidents: 18, near: 25 },
-      { month: "Apr", incidents: 9, near: 19 },
-      { month: "May", incidents: 12, near: 21 },
-      { month: "Jun", incidents: 8, near: 16 },
-      { month: "Jul", incidents: 7, near: 14 },
-      { month: "Aug", incidents: 10, near: 18 },
-      { month: "Sep", incidents: 9, near: 15 },
-      { month: "Oct", incidents: 11, near: 17 },
-      { month: "Nov", incidents: 13, near: 20 },
-      { month: "Dec", incidents: 10, near: 16 },
-    ],
-    [],
-  );
-
-  const byIndustry = useMemo(
-    () => [
-      { name: "Manufacturing", risk: 78 },
-      { name: "Construction", risk: 85 },
-      { name: "Energy", risk: 69 },
-      { name: "Logistics", risk: 58 },
-      { name: "Healthcare", risk: 41 },
-    ],
-    [],
-  );
-
-  const riskScore = useMemo(
-    () => [
-      { month: "Jan", score: 72 },
-      { month: "Feb", score: 70 },
-      { month: "Mar", score: 68 },
-      { month: "Apr", score: 66 },
-      { month: "May", score: 65 },
-      { month: "Jun", score: 63 },
-      { month: "Jul", score: 62 },
-      { month: "Aug", score: 61 },
-      { month: "Sep", score: 59 },
-      { month: "Oct", score: 60 },
-      { month: "Nov", score: 58 },
-      { month: "Dec", score: 57 },
-    ],
-    [],
-  );
-
   return (
     <div className="">
+      {/* Hero Section */}
       <section className="relative overflow-hidden border-b bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50">
         <div className="pointer-events-none absolute -left-10 top-10 hidden size-40 rounded-full bg-primary/20 blur-2xl md:block" />
         <div className="pointer-events-none absolute -right-10 bottom-10 hidden size-40 rounded-full bg-yellow-400/30 blur-2xl md:block" />
@@ -92,8 +17,7 @@ export default function Index() {
           <div className="flex flex-col justify-center">
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border bg-background px-3 py-1 text-xs text-muted-foreground shadow-sm">
               <TriangleAlert className="h-4 w-4 text-yellow-500" />
-              Predictive Safety Insights — real-time detection meets AI-driven
-              reporting
+              Predictive Safety Insights — real-time detection meets AI-driven reporting
             </div>
             <h1 className="text-balance text-4xl font-extrabold tracking-tight md:text-5xl">
               SafeScope: Industrial safety made smart and approachable
@@ -102,14 +26,10 @@ export default function Index() {
               <ModeToggle />
             </div>
             <p className="mt-4 max-w-prose text-lg text-muted-foreground">
-              Detect PPE, flag hazards, and visualize workplace risk with
-              playful, modern design and professional-grade insights.
+              Detect PPE, flag hazards, and visualize workplace risk with playful, modern design and professional-grade insights.
             </p>
             <div className="mt-6 flex flex-wrap gap-3">
-              <Button
-                asChild
-                className="shadow-[0_12px_30px_-12px_hsl(var(--primary))]"
-              >
+              <Button asChild className="shadow-[0_12px_30px_-12px_hsl(var(--primary))]">
                 <Link to="/image-analysis">Upload Image</Link>
               </Button>
               <Button asChild variant="secondary">
@@ -137,116 +57,23 @@ export default function Index() {
         </div>
       </section>
 
-      <section className="container mx-auto space-y-6 py-10">
-        <div className="grid gap-6 md:grid-cols-3">
-          <Card className="overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg">Accident Statistics</CardTitle>
-              <CardDescription>
-                Incidents vs near-misses per month
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  incidents: {
-                    label: "Incidents",
-                    color: "hsl(var(--destructive))",
-                  },
-                  near: { label: "Near Misses", color: "hsl(var(--primary))" },
-                }}
-                className="h-48"
-              >
-                <LineChart data={monthly}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Line
-                    type="monotone"
-                    dataKey="incidents"
-                    stroke="var(--color-incidents)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="near"
-                    stroke="var(--color-near)"
-                    strokeWidth={2}
-                    dot={false}
-                  />
-                  <ChartLegend content={<ChartLegendContent />} />
-                </LineChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg">Risk by Industry</CardTitle>
-              <CardDescription>Composite risk score</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  risk: { label: "Risk", color: "hsl(var(--primary))" },
-                }}
-                className="h-48"
-              >
-                <BarChart data={byIndustry}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="name" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Bar
-                    dataKey="risk"
-                    fill="var(--color-risk)"
-                    radius={[6, 6, 0, 0]}
-                  />
-                </BarChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
-
-          <Card className="overflow-hidden">
-            <CardHeader>
-              <CardTitle className="text-lg">Risk Score Trend</CardTitle>
-              <CardDescription>Lower is better</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <ChartContainer
-                config={{
-                  score: { label: "Score", color: "hsl(var(--primary))" },
-                }}
-                className="h-48"
-              >
-                <AreaChart data={riskScore}>
-                  <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} />
-                  <YAxis tickLine={false} axisLine={false} />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <Area
-                    dataKey="score"
-                    stroke="var(--color-score)"
-                    fill="var(--color-score)"
-                    fillOpacity={0.2}
-                  />
-                </AreaChart>
-              </ChartContainer>
-            </CardContent>
-          </Card>
+      {/* Tableau Dashboard Section — 고정 크기 중앙 배치 */}
+      <section className="w-full py-10 bg-white">
+        <h2 className="text-2xl font-bold mb-6 text-center">Interactive Safety Dashboard</h2>
+        <div className="w-full flex justify-center">
+          {/* 1번 스샷처럼 보이도록 1024x1627 권장. 필요시 숫자만 조정 */}
+          <TableauEmbed name="_17574726192320/5" width={1024} height={1627} />
         </div>
       </section>
 
+      {/* Feature Navigation Section */}
       <section className="border-y bg-gradient-to-br from-background to-amber-50/40 py-12">
         <div className="container mx-auto">
           <h2 className="text-balance text-center text-3xl font-bold tracking-tight md:text-4xl">
             Safety tools that feel friendly
           </h2>
           <p className="mx-auto mt-2 max-w-2xl text-center text-muted-foreground">
-            Playful, modern UI with professional-grade features for image
-            analysis, video monitoring, and AI risk reports.
+            Playful, modern UI with professional-grade features for image analysis, video monitoring, and AI risk reports.
           </p>
           <div className="mt-8 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
             <FeatureCard
@@ -261,7 +88,7 @@ export default function Index() {
               title="AI Risk Report"
               desc="Generate insights"
               to="/risk-report"
-              color="bg-yellow-400/20 text-yellow-700"
+              color="bg-yellow-400/2 0 text-yellow-700"
             />
             <FeatureCard
               icon={<Shield className="h-5 w-5" />}
@@ -319,23 +146,17 @@ function FeatureCard({
 }) {
   return (
     <Link to={to} className="group">
-      <Card className="h-full transition-all hover:-translate-y-0.5 hover:shadow-lg">
-        <CardHeader>
-          <div
-            className={`mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${color}`}
-          >
-            {icon}
-            <span>{title}</span>
-          </div>
-          <CardTitle className="text-xl">{title}</CardTitle>
-          <CardDescription>{desc}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="h-2 w-full rounded-full bg-accent/60">
-            <div className="h-2 w-1/2 rounded-full bg-primary transition-all group-hover:w-4/5" />
-          </div>
-        </CardContent>
-      </Card>
+      <div className="h-full rounded-xl border bg-white p-4 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+        <div className={`mb-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs ${color}`}>
+          {icon}
+          <span>{title}</span>
+        </div>
+        <h3 className="text-xl font-semibold">{title}</h3>
+        <p className="text-sm text-muted-foreground">{desc}</p>
+        <div className="mt-2 h-2 w-full rounded-full bg-accent/60">
+          <div className="h-2 w-1/2 rounded-full bg-primary transition-all group-hover:w-4/5" />
+        </div>
+      </div>
     </Link>
   );
 }
