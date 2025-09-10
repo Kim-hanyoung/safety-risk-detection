@@ -8,10 +8,10 @@ from pathlib import Path
 # 모델이 메타데이터에 등록되도록 import
 from .models import user as _user   # noqa
 from .models import post as _post   # 추가 (Post, Comment 등록)
+from .models import alert
 
-from .routers import auth
-from .routers import post
-from .routers import detect
+from .routers import auth, post, detect, alerts, stream
+
 
 
 app = FastAPI(title="Safety Risk Detection API")
@@ -39,6 +39,8 @@ app.mount("/uploads", StaticFiles(directory=settings.UPLOAD_DIR), name="uploads"
 app.include_router(auth.router)
 app.include_router(post.router)
 app.include_router(detect.router)
+app.include_router(alerts.router)
+app.include_router(stream.router)
 
 
 @app.get("/health")

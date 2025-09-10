@@ -18,6 +18,7 @@ import VideoDetection from "./pages/VideoDetection";
 import Auth from "./pages/Auth";
 import Forum from "./pages/Forum";
 import ForumPost from "./pages/ForumPost";
+import MobileStream from "./pages/MobileStream";
 
 import { AlertsProvider } from "@/context/alerts";
 
@@ -42,6 +43,7 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/about" element={<About />} />
+                  <Route path="/mobile-stream" element={<MobileStream />} />
 
                   {/* ✅ /risk-report는 로그인 필요 */}
                   <Route

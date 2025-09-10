@@ -230,3 +230,5 @@ data/**
 !data/README.md
 !data/sample/**
 !frontend/client/lib
+
+backend/uploads
