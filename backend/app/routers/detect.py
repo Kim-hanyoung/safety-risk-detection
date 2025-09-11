@@ -140,6 +140,7 @@ async def detect_image(
     risk = compute_risk(detections)
 
     # 응답 공통
+    # ... (생략) ...
     resp = {
         "ok": True,
         "original_url": f"/uploads/orig/{orig_path.name}",
@@ -149,7 +150,6 @@ async def detect_image(
         "risk": risk,
     }
 
-    # 게시(LLM 리포트)
     if publish:
         user = db.query(User).get(sub)
         if not user:
@@ -169,17 +169,30 @@ async def detect_image(
             from collections import Counter
             c = Counter([d["label"] for d in detections])
             summary = "\n".join([f"- {k}: {v}" for k, v in c.most_common()]) or "- No detections"
-            imgs = [f"![Original]({resp['original_url']})"] + [
-                f"![{k.upper()}]({v})" for k, v in (resp.get("annotated") or {}).items()
-            ]
-            md = f"## Detection Summary\n{summary}\n\n**Model**: {model}\n\n" + "\n".join(imgs)
+
+            # ✅ 마크다운 이미지로 삽입
+            img_lines = [f"![Original]({resp['original_url']})"]
+            for k, v in (resp.get("annotated") or {}).items():
+                img_lines.append(f"![{k.upper()} Annotated]({v})")
+
+            md = (
+                f"## Detection Summary\n{summary}\n\n"
+                f"**Model**: {model}\n\n" +
+                "\n".join(img_lines)
+            )
+
+        # (선택) 첨부파일 메타도 같이 넣기
+        attachments = [{"file_name": f"original_{orig_path.name}", "file_url": resp["original_url"]}]
+        for k, v in (resp.get("annotated") or {}).items():
+            attachments.append({"file_name": f"{k}_{orig_path.stem}.jpg", "file_url": v})
 
         p = Post(
             author_id=user.id,
             category="reports",
             title=title or "AI 분석 리포트",
-            content_md=md,
-            meta={**resp, "llm": {"used": llm_used, "error": llm_error, "model": os.getenv("GEMINI_MODEL", "gemini-1.5-flash")}},
+            content_md=md,  # ← 본문에 이미지 포함
+            meta={**resp, "attachments": attachments,
+                "llm": {"used": llm_used, "error": llm_error, "model": settings.GEMINI_MODEL}},
         )
         db.add(p); db.commit(); db.refresh(p)
         resp["post_id"] = p.id
