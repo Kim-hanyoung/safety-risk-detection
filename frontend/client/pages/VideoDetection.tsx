@@ -1,141 +1,127 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useToast } from "@/components/ui/use-toast";
 
-type Risk = { level: string; score: number };
-
-function wsUrl() {
+function wsWatchUrl() {
   const proto = location.protocol === "https:" ? "wss" : "ws";
-  // Vite 프록시(/api → FastAPI) 사용
   return `${proto}://${location.host}/api/stream/ws`;
 }
 
 export default function VideoDetection() {
-  // 풀 모드: MJPEG URL (예: http://<ip>:8080/video)
-  const [url, setUrl] = useState("");
-  const [running, setRunning] = useState(false);   // 서버 pull loop 상태
-  const [connected, setConnected] = useState(false); // WS 연결 상태
-  const [lastAlert, setLastAlert] = useState<string | null>(null);
-  const [risk, setRisk] = useState<Risk | null>(null);
+  // WS로 받은 최신 프레임(data URL) 보관
+  const [frame, setFrame] = useState<string | null>(null);
+  const [wsConnected, setWsConnected] = useState(false);
 
-  const imgRef = useRef<HTMLImageElement>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const { toast } = useToast();
+  // Pull 모드용
+  const [pullUrl, setPullUrl] = useState("");
+  const [pullRunning, setPullRunning] = useState(false);
 
-  // -----------------------------
-  // WebSocket: 시청자용(/api/stream/ws)
-  // -----------------------------
+  // 시청자 WS 연결 (브라우저)
   useEffect(() => {
-    const ws = new WebSocket(wsUrl());
-    wsRef.current = ws;
+    let alive = true;
+    let ws: WebSocket | null = null;
+    let pingTimer: number | null = null;
 
-    ws.onopen = () => setConnected(true);
-
-    ws.onmessage = (ev) => {
-      try {
-        const msg = JSON.parse(ev.data);
-        if (msg.type === "frame") {
-          if (imgRef.current && typeof msg.image === "string") {
-            imgRef.current.src = msg.image;
+    const connect = () => {
+      ws = new WebSocket(wsWatchUrl());
+      ws.onopen = () => {
+        if (!alive) return;
+        setWsConnected(true);
+        // 20초마다 ping(사파리/모바일에서 keepalive)
+        pingTimer = window.setInterval(() => {
+          try { ws?.send("ping"); } catch {}
+        }, 20000);
+      };
+      ws.onmessage = (ev) => {
+        if (!alive) return;
+        try {
+          const msg = JSON.parse(ev.data);
+          if (msg.type === "frame" && typeof msg.image === "string") {
+            // ✅ 서버에서 보내는 건 data:image/jpeg;base64,... 형식
+            setFrame(msg.image);
+          } else if (msg.type === "alert") {
+            // 필요 시 토스트/배지 표시
+            // console.log("ALERT:", msg);
           }
-          if (msg.risk) setRisk(msg.risk as Risk);
-        } else if (msg.type === "alert") {
-          setLastAlert(`${msg.severity}: ${msg.message}`);
-          toast({
-            title: `ALERT – ${msg.severity}`,
-            description: msg.message ?? "위험 감지",
-          });
-        } else if (msg.type === "error") {
-          toast({ title: "Stream Error", description: msg.message ?? "오류" });
-        }
-      } catch {
-        /* ignore */
-      }
+        } catch {}
+      };
+      ws.onclose = () => {
+        if (!alive) return;
+        setWsConnected(false);
+        if (pingTimer) { clearInterval(pingTimer); pingTimer = null; }
+        // 2초 뒤 재연결
+        setTimeout(connect, 2000);
+      };
+      ws.onerror = () => {
+        try { ws?.close(); } catch {}
+      };
     };
 
-    ws.onclose = () => setConnected(false);
-    ws.onerror = () => setConnected(false);
-
+    connect();
     return () => {
-      ws.close();
-      wsRef.current = null;
+      alive = false;
+      if (pingTimer) clearInterval(pingTimer);
+      try { ws?.close(); } catch {}
     };
-  }, [toast]);
+  }, []);
 
-  // -----------------------------
-  // 풀 모드 제어: /api/stream/start /stop
-  // -----------------------------
+  // Pull 모드 시작/중지
   async function startPull() {
-    if (!url.trim()) {
-      toast({ title: "URL 필요", description: "MJPEG/HTTP 스트림 URL을 입력하세요." });
-      return;
-    }
+    if (!pullUrl.trim()) return;
     await fetch("/api/stream/start", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ url: url.trim(), kind: "both" }),
+      body: JSON.stringify({ url: pullUrl, kind: "both" }),
     });
-    setRunning(true);
+    setPullRunning(true);
   }
-
   async function stopPull() {
     await fetch("/api/stream/stop", { method: "POST" });
-    setRunning(false);
+    setPullRunning(false);
   }
 
   return (
-    <div className="container mx-auto max-w-5xl py-8 space-y-4">
+    <div className="container mx-auto max-w-5xl py-6 space-y-4">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm rounded border px-2 py-1">
-          WS: {connected ? "Connected" : "Disconnected"}
+        <span className={`px-2 py-1 rounded border text-sm ${wsConnected ? "border-green-500 text-green-600" : "border-red-500 text-red-600"}`}>
+          WS: {wsConnected ? "Connected" : "Disconnected"}
         </span>
-        <span className="text-sm rounded border px-2 py-1">
-          Pull Loop: {running ? "Running" : "Stopped"}
+        <span className={`px-2 py-1 rounded border text-sm ${pullRunning ? "border-blue-500 text-blue-600" : "border-gray-400 text-gray-500"}`}>
+          Pull Loop: {pullRunning ? "Running" : "Stopped"}
         </span>
-        {risk && (
-          <span className="text-sm rounded border px-2 py-1">
-            Risk: <b>{risk.level}</b> (score {risk.score})
-          </span>
-        )}
       </div>
 
-      {/* 풀 모드 컨트롤 (IP 카메라 / MJPEG) */}
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+      {/* Pull 모드 컨트롤 (IP 카메라/MJPEG) */}
+      <div className="flex gap-2">
         <Input
-          value={url}
-          onChange={(e) => setUrl(e.target.value)}
           placeholder="Stream URL (e.g., http://<ip>:8080/video)"
-          className="sm:flex-1"
+          value={pullUrl}
+          onChange={(e) => setPullUrl(e.target.value)}
         />
-        {!running ? (
+        {!pullRunning ? (
           <Button onClick={startPull}>Start (Pull)</Button>
         ) : (
-          <Button variant="outline" onClick={stopPull}>
-            Stop (Pull)
-          </Button>
+          <Button variant="outline" onClick={stopPull}>Stop (Pull)</Button>
         )}
       </div>
 
-      {/* 실시간 프레임 */}
+      {/* 실제 프레임 표시: 반드시 data URL을 src로!! */}
       <div className="rounded border p-2">
-        <img ref={imgRef} alt="live" className="w-full rounded" />
+        {frame ? (
+          <img
+            src={frame}
+            alt="live"
+            className="w-full h-auto rounded"
+            style={{ objectFit: "contain", maxHeight: "80vh" }}
+          />
+        ) : (
+          <div className="text-sm text-muted-foreground">대기 중… (모바일에서 /mobile-stream → Start 를 누르거나 Pull을 시작하세요)</div>
+        )}
       </div>
 
-      {lastAlert && (
-        <div className="text-sm text-red-600">
-          Last alert: {lastAlert}
-        </div>
-      )}
-
-      <div className="text-sm text-muted-foreground space-y-1">
-        <div>
-          • <b>iPhone 푸시 모드</b>: 핸드폰에서 <code>/mobile-stream</code> 페이지로 접속해
-          <b> Start Camera</b>를 누르면 이 화면은 자동으로 실시간 프레임을 수신합니다(별도 URL 불필요).
-        </div>
-        <div>
-          • <b>IP 카메라 풀 모드</b>: MJPEG/HTTP URL을 입력하고 <b>Start (Pull)</b>.
-        </div>
+      <div className="text-sm text-muted-foreground">
+        • iPhone 푸시 모드: 휴대폰에서 <code>/mobile-stream</code> 페이지 → <b>Start</b> 누르면 이 화면이 자동으로 프레임을 수신합니다(별도 URL 불필요).<br />
+        • IP 카메라 풀 모드: MJPEG/HTTP URL을 입력하고 <b>Start (Pull)</b>.
       </div>
     </div>
   );

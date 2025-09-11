@@ -1,180 +1,178 @@
 import { useEffect, useState } from "react";
-import { listPosts, createPost, Post } from "@/lib/posts";
-import { useAuth } from "@/context/auth";
-import { Link, useSearchParams } from "react-router-dom";
+import { listPosts, createPost, uploadAttachment, Post, Attachment } from "@/lib/posts";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
-const PAGE_SIZE = 10;
-
-// 레벨별 배지 색상
-function badgeClass(level?: string) {
-  switch (level) {
-    case "Critical":
-      return "bg-red-100 text-red-700 border-red-200";
-    case "High":
-      return "bg-orange-100 text-orange-700 border-orange-200";
-    case "Warning":
-      return "bg-yellow-100 text-yellow-700 border-yellow-200";
-    case "Normal":
-      return "bg-green-100 text-green-700 border-green-200";
-    default:
-      return "bg-muted text-muted-foreground";
-  }
-}
-
 export default function Forum() {
-  const { user } = useAuth();
-  const [sp, setSp] = useSearchParams();
-  const tab = sp.get("category") === "reports" ? "reports" : "general";
-
-  const [page, setPage] = useState(1);
-  const [data, setData] = useState<{
-    items: Post[];
-    total: number;
-    page: number;
-    page_size: number;
-  }>();
+  const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // 작성 폼 상태
-  const [openWrite, setOpenWrite] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [title, setTitle] = useState("");
-  const [contentMd, setContentMd] = useState("");
+  const [content, setContent] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
 
-  async function load() {
+  const [category, setCategory] = useState<"general" | "reports">("general");
+
+  async function reload() {
     setLoading(true);
     try {
-      const res = await listPosts({ category: tab, page, page_size: PAGE_SIZE });
-      setData(res);
+      const data = await listPosts({ category });
+      setPosts(data.items);
     } finally {
       setLoading(false);
     }
   }
 
   useEffect(() => {
-    setPage(1);
-  }, [tab]);
+    reload();
+  }, [category]);
 
-  useEffect(() => {
-    load();
-  }, [tab, page]);
-
-  function switchTab(c: "general" | "reports") {
-    setSp({ category: c });
+  // 새 글 저장
+  async function onCreatePost() {
+    if (!title.trim() || !content.trim()) return;
+    await createPost({
+      title,
+      content_md: content,
+      category,
+      meta: { attachments },
+    });
+    setTitle("");
+    setContent("");
+    setAttachments([]);
+    setCreating(false);
+    reload();
   }
 
-  async function onCreate(e: React.FormEvent) {
-    e.preventDefault();
-    await createPost({ title, content_md: contentMd, category: tab as any });
-    setTitle("");
-    setContentMd("");
-    setOpenWrite(false);
-    load();
+  // 파일 업로드
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+    setUploading(true);
+    try {
+      const data = await uploadAttachment(file);
+      setAttachments((prev) => [...prev, data]);
+    } finally {
+      setUploading(false);
+    }
   }
 
   return (
-    <div className="container mx-auto max-w-4xl py-8 space-y-6">
-      {/* 탭 & 새 글 버튼 */}
-      <div className="flex items-center justify-between">
-        <div className="inline-flex rounded border p-1">
-          <button
-            onClick={() => switchTab("general")}
-            className={`px-3 py-1 rounded ${tab === "general" ? "bg-accent text-accent-foreground" : ""}`}
+    <div className="container mx-auto max-w-3xl py-8 space-y-6">
+      {/* 카테고리 탭 + New Post 버튼 */}
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button
+            variant={category === "general" ? "default" : "outline"}
+            onClick={() => setCategory("general")}
           >
             General
-          </button>
-        <button
-            onClick={() => switchTab("reports")}
-            className={`px-3 py-1 rounded ${tab === "reports" ? "bg-accent text-accent-foreground" : ""}`}
+          </Button>
+          <Button
+            variant={category === "reports" ? "default" : "outline"}
+            onClick={() => setCategory("reports")}
           >
             Reports
-          </button>
+          </Button>
         </div>
 
-        {user && (
-          <Button onClick={() => setOpenWrite((v) => !v)}>
-            {openWrite ? "Cancel" : tab === "reports" ? "New Report" : "New Post"}
+        {!creating && (
+          <Button
+            onClick={() => setCreating(true)}
+            className="bg-orange-500 text-white hover:bg-orange-600"
+          >
+            New Post
           </Button>
         )}
       </div>
 
-      {/* 작성 폼 */}
-      {openWrite && user && (
-        <form onSubmit={onCreate} className="space-y-3 border rounded p-4">
+      {/* 새 글 작성 */}
+      {creating && (
+        <div className="space-y-3 border rounded p-4">
           <Input
             placeholder="Title"
             value={title}
             onChange={(e) => setTitle(e.target.value)}
-            required
           />
           <Textarea
-            placeholder="Write in Markdown…"
-            value={contentMd}
-            onChange={(e) => setContentMd(e.target.value)}
-            required
-            className="min-h-[160px]"
+            placeholder="Write in Markdown..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
           />
-          <div className="text-right">
-            <Button type="submit">Publish</Button>
+          {/* 파일 업로드 */}
+          <div className="space-y-2">
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <label
+              htmlFor="file-upload"
+              className="bg-orange-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-orange-600"
+            >
+              File Upload
+            </label>
+            {uploading && <div>Uploading…</div>}
+            {attachments.map((att, idx) =>
+              att.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <div key={idx} className="space-y-1">
+                  <img
+                    src={att.file_url}
+                    alt={att.file_name}
+                    className="max-w-md rounded border"
+                  />
+                </div>
+              ) : (
+                <div key={idx}>{att.file_name}</div>
+              )
+            )}
           </div>
-        </form>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              className="bg-orange-500 text-white hover:bg-orange-600"
+              onClick={() => setCreating(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onCreatePost}
+              className="bg-orange-500 text-white hover:bg-orange-600"
+            >
+              Publish
+            </Button>
+          </div>
+        </div>
       )}
 
-      {/* 목록 */}
-      <div className="space-y-3">
-        {loading && <div className="text-muted-foreground">Loading…</div>}
-        {!loading && (data?.items.length ?? 0) === 0 && (
-          <div className="text-muted-foreground">No posts</div>
-        )}
-
-        {!loading &&
-          data?.items.map((p) => (
-            <Link
+      {/* 게시글 목록 */}
+      {loading ? (
+        <div>Loading…</div>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((p) => (
+            <a
               key={p.id}
-              to={`/forum/${p.id}?category=${tab}`} // 현재 탭 정보 유지
-              className="block border rounded p-4 hover:bg-accent/30"
+              href={`/forum/${p.id}`}
+              className="block border rounded p-4 hover:bg-muted"
             >
               <div className="text-sm text-muted-foreground">
-                {p.category.toUpperCase()} · {new Date(p.created_at).toLocaleString()}
+                {p.category.toUpperCase()} ·{" "}
+                {new Date(p.created_at).toLocaleString()}
               </div>
-
-              {/* 제목 + 위험도 뱃지 */}
-              <div className="mt-0.5 flex items-center gap-2">
-                <div className="text-lg font-semibold">{p.title}</div>
-                {/* meta.risk 뱃지 */}
-                {p.meta?.risk && (
-                  <span
-                    className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs border ${badgeClass(
-                      p.meta.risk.level
-                    )}`}
-                  >
-                    {p.meta.risk.level}
-                  </span>
-                )}
+              <div className="font-bold">{p.title}</div>
+              <div className="text-sm">{p.author.name ?? p.author.email}</div>
+              <div className="text-muted-foreground mt-2 line-clamp-2">
+                {p.content_md}
               </div>
-
-              <div className="text-sm text-muted-foreground">
-                by {p.author.name ?? p.author.email}
-              </div>
-            </Link>
+            </a>
           ))}
-      </div>
-
-      {/* 페이지네이션 */}
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" disabled={page <= 1} onClick={() => setPage((p) => p - 1)}>
-          Prev
-        </Button>
-        <Button
-          variant="outline"
-          disabled={(data?.page || 1) * PAGE_SIZE >= (data?.total || 0)}
-          onClick={() => setPage((p) => p + 1)}
-        >
-          Next
-        </Button>
-      </div>
+        </div>
+      )}
     </div>
   );
 }
