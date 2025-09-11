@@ -12,8 +12,8 @@ export default function SiteFooter() {
           <a href="/forum" className="hover:text-foreground">
             Community
           </a>
-          <a href="/risk-report" className="hover:text-foreground">
-            Risk Reports
+          <a href="/video-detection" className="hover:text-foreground">
+            Video Detection
           </a>
         </div>
       </div>

@@ -33,7 +33,7 @@ export default function Index() {
                 <Link to="/image-analysis">이미지 업로드</Link>
               </Button>
               <Button asChild variant="secondary">
-                <Link to="/risk-report">리스크 리포트 보기</Link>
+                <Link to="/video-detection">영상 기기 연결</Link>
               </Button>
             </div>
           </div>
@@ -75,16 +75,16 @@ export default function Index() {
             />
             <FeatureCard
               icon={<TriangleAlert className="h-5 w-5" />}
-              title="AI 리스크 리포트"
-              desc="인사이트 생성"
-              to="/risk-report"
+              title="영상 분석"
+              desc="프레임 단위 위험 분석"
+              to="/video-detection"
               color="bg-yellow-400/20 text-yellow-700"
             />
             <FeatureCard
               icon={<Shield className="h-5 w-5" />}
-              title="영상 감지"
-              desc="실시간 모니터링"
-              to="/video-detection"
+              title="로그인"
+              desc="맞춤화된 서비스"
+              to="/auth"
               color="bg-emerald-400/20 text-emerald-700"
             />
             <FeatureCard
@@ -143,9 +143,7 @@ function FeatureCard({
         </div>
         <h3 className="text-xl font-semibold">{title}</h3>
         <p className="text-sm text-muted-foreground">{desc}</p>
-        <div className="mt-2 h-2 w-full rounded-full bg-accent/60">
-          <div className="h-2 w-1/2 rounded-full bg-primary transition-all group-hover:w-4/5" />
-        </div>
+        <div className="group mt-2 h-2 w-full rounded-full bg-primary transition-all group-hover:bg-accent/60" />
       </div>
     </Link>
   );
