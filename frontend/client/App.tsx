@@ -1,3 +1,4 @@
+// client/main.tsx
 import "./global.css";
 
 import { Toaster } from "@/components/ui/toaster";
@@ -5,6 +6,8 @@ import { createRoot } from "react-dom/client";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+// ✅ BrowserRouter 대신 HashRouter 권장(ngrok/모바일 404 방지)
+//import { HashRouter, Routes, Route } from "react-router-dom";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Index from "./pages/Index";
@@ -21,8 +24,6 @@ import ForumPost from "./pages/ForumPost";
 import MobileStream from "./pages/MobileStream";
 
 import { AlertsProvider } from "@/context/alerts";
-
-// ✅ 추가: 인증 컨텍스트 & 보호 라우트
 import { AuthProvider } from "@/context/auth";
 import RequireAuth from "@/components/RequireAuth";
 
@@ -33,9 +34,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      {/* <BrowserRouter> 로 쓰고 싶으면 바꿔도 되지만,
+          ngrok/모바일 404가 나면 HashRouter가 안전합니다. */}
       <BrowserRouter>
         <AlertsProvider>
-          {/* ✅ AuthProvider로 전역 감싸기 */}
           <AuthProvider>
             <div className="flex min-h-screen flex-col bg-background">
               <SiteHeader />
@@ -43,16 +45,8 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/risk-report" element={<RiskReport />} />
-                  <Route path="/image-analysis" element={<ImageAnalysis />} />
-                  <Route path="/video-detection" element={<VideoDetection />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/forum" element={<Forum />} />
-                  <Route path="/forum/:id" element={<ForumPost />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
 
-                  {/* ✅ /risk-report는 로그인 필요 */}
+                  {/* 보호 라우트 예시 */}
                   <Route
                     path="/risk-report"
                     element={
@@ -62,22 +56,17 @@ const App = () => (
                     }
                   />
 
-                  {/* 필요시 /image-analysis도 보호하고 싶으면 아래처럼 감싸세요
-                  <Route
-                    path="/image-analysis"
-                    element={
-                      <RequireAuth>
-                        <ImageAnalysis />
-                      </RequireAuth>
-                    }
-                  /> */}
                   <Route path="/image-analysis" element={<ImageAnalysis />} />
-
                   <Route path="/video-detection" element={<VideoDetection />} />
+
+                  {/* ⬇️ 빠져 있던 라우트 추가 */}
+                  <Route path="/mobile-stream" element={<MobileStream />} />
+
                   <Route path="/auth" element={<Auth />} />
                   <Route path="/forum" element={<Forum />} />
                   <Route path="/forum/:id" element={<ForumPost />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+
+                  {/* 맨 마지막 catch-all */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
               </main>
