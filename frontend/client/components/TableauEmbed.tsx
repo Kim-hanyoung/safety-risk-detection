@@ -1,71 +1,75 @@
 import { useEffect } from "react";
 
+// TSX에서 커스텀 태그 허용
+declare global {
+  namespace JSX {
+    interface IntrinsicElements {
+      "tableau-viz": React.DetailedHTMLProps<
+        React.HTMLAttributes<HTMLElement>,
+        HTMLElement
+      > & {
+        src?: string;
+        toolbar?: string;
+        "hide-tabs"?: boolean | "";
+      };
+    }
+  }
+}
+
 type Props = {
-  /** Tableau 대시보드 경로: /views/ 뒤의 부분 */
-  name?: string;
-  /** 픽셀 단위 고정폭/고정높이 (원하는 값으로 조정) */
+  /** Tableau Public의 views/ 뒤 경로 예) "_17574726192320/5" */
+  viewPath: string;
+  /** 1번 스샷처럼 보이게 하려면 1024 x 1627 권장 */
   width?: number;
   height?: number;
 };
 
 export default function TableauEmbed({
-  name = "_17574726192320/5",
+  viewPath,
   width = 1024,
   height = 1627,
 }: Props) {
   useEffect(() => {
-    // 중복 로드 방지
+    // v1/v2 잔여 스크립트 제거(충돌 방지)
+    document
+      .querySelectorAll(
+        "script[src*='viz_v1.js'],script[src*='tableau-2.min.js']"
+      )
+      .forEach((n) => n.parentNode?.removeChild(n));
+
+    // v3 스크립트(모듈) 주입
     const existed = document.querySelector(
-      "script[src='https://public.tableau.com/javascripts/api/viz_v1.js']"
+      "script[src='https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js']"
     );
     if (!existed) {
       const s = document.createElement("script");
-      s.src = "https://public.tableau.com/javascripts/api/viz_v1.js";
-      s.async = true;
-      document.body.appendChild(s);
+      s.type = "module"; // ★ 중요: v3는 모듈
+      s.src =
+        "https://public.tableau.com/javascripts/api/tableau.embedding.3.latest.min.js";
+      document.head.appendChild(s);
     }
-    // object 사이즈도 명시적으로 넣어줌(스크립트가 읽어 사용)
-    const el = document.getElementById("tableau-viz-fixed") as HTMLDivElement | null;
-    const obj = el?.getElementsByTagName("object")[0] as HTMLObjectElement | undefined;
-    if (obj) {
-      obj.style.width = `${width}px`;
-      obj.style.height = `${height}px`;
-    }
-  }, [width, height]);
+  }, [viewPath]);
+
+  const src = `https://public.tableau.com/views/${viewPath}` +
+            `?:showVizHome=no` +       // 홈 숨김
+            `&:embed=yes` +            // 임베드 모드
+            `&:toolbar=no` +           // 툴바 비표시
+            `&:display_count=n` +      // "Tableau Public에서 보기/조회수" 바 숨김
+            `&:showShareOptions=false`;// 공유 아이콘 숨김
 
   return (
-    <div
-      id="tableau-viz-fixed"
-      // 가운데 정렬 + 고정 사이즈(부모가 더 넓어도 빈 여백 없이 딱 맞춤)
-      style={{ width, height, margin: "0 auto", position: "relative", overflow: "hidden" }}
-      className="tableauPlaceholder"
-    >
-      <noscript>
-        <a href="#">
-          <img
-            alt="대시보드"
-            src={`https://public.tableau.com/static/images/_1/${encodeURIComponent(
-              "_17574726192320"
-            )}/5/1.png`}
-            style={{ border: "none" }}
-          />
-        </a>
-      </noscript>
-      <object className="tableauViz" style={{ display: "none" }}>
-        <param name="host_url" value="https%3A%2F%2Fpublic.tableau.com%2F" />
-        <param name="embed_code_version" value="3" />
-        <param name="site_root" value="" />
-        <param name="name" value={name} />
-        <param name="tabs" value="no" />
-        <param name="toolbar" value="yes" />
-        <param name="animate_transition" value="yes" />
-        <param name="display_spinner" value="yes" />
-        <param name="display_overlay" value="yes" />
-        <param name="display_count" value="yes" />
-        <param name="language" value="ko-KR" />
-        {/* 디바이스 레이아웃이 있다면 명시 */}
-        <param name="device" value="desktop" />
-      </object>
+    <div style={{ width, height, margin: "0 auto", overflow: "hidden" }}>
+      {/* 커스텀 엘리먼트는 스크립트가 로드되면 자동 업그레이드됨 */}
+      <tableau-viz
+        src={src}
+        toolbar="hidden"     // 툴바 숨김
+        hide-tabs            // 탭 숨김
+        style={{
+          display: "block",
+          width: `${width}px`,
+          height: `${height}px`,
+        }}
+      />
     </div>
   );
 }

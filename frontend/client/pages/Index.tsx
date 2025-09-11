@@ -59,11 +59,14 @@ export default function Index() {
 
       {/* Tableau Dashboard Section — 고정 크기 중앙 배치 */}
       <section className="w-full py-10 bg-white">
-        <h2 className="text-2xl font-bold mb-6 text-center">Interactive Safety Dashboard</h2>
-        <div className="w-full flex justify-center">
-          {/* 1번 스샷처럼 보이도록 1024x1627 권장. 필요시 숫자만 조정 */}
-          <TableauEmbed name="_17574726192320/5" width={1024} height={1627} />
-        </div>
+        <h2 className="text-2xl font-bold mb-6 text-center">
+          Interactive Safety Dashboard
+        </h2>
+        <TableauEmbed
+          viewPath="_17574726192320/5"   // ← 너의 뷰 경로
+          width={1024}                    // 1번 스샷과 동일한 레이아웃
+          height={1627}
+        />
       </section>
 
       {/* Feature Navigation Section */}
