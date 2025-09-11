@@ -10,10 +10,10 @@ export default function AboutPage() {
           <span className="icon-pulse text-8xl">🦺</span>
         </div>
         <h1 className="bg-gradient-to-r from-orange-500 to-yellow-500 bg-clip-text text-5xl font-extrabold text-transparent md:text-6xl">
-          About SafeScope
+          SafeScope 소개
         </h1>
         <p className="mx-auto mt-4 max-w-3xl text-xl leading-relaxed text-muted-foreground">
-          Revolutionary AI-powered safety monitoring designed to protect workers and prevent accidents through intelligent detection and analysis.
+          AI 기반의 혁신적인 안전 모니터링 시스템으로, 지능형 감지와 분석을 통해 근로자를 보호하고 사고를 예방합니다.
         </p>
       </div>
 
@@ -23,25 +23,26 @@ export default function AboutPage() {
           <span className="icon-bounce text-3xl">🎯</span>
           <span className="icon-rotate text-3xl">⚡</span>
         </div>
-        <h2 className="mb-6 text-3xl font-bold text-primary">Our Mission</h2>
+        <h2 className="mb-6 text-3xl font-bold text-primary">우리의 목표</h2>
         <p className="mb-6 text-lg leading-relaxed text-muted-foreground">
-          To create the world's most advanced safety monitoring ecosystem that combines artificial intelligence, computer vision, and real-time analytics to eliminate workplace accidents and save lives. We believe every worker deserves to return home safely every day.
+          세계에서 가장 진보된 안전 모니터링 생태계를 구축하여 인공지능, 컴퓨터 비전, 실시간 분석을 결합해 산업재해를 제거하고 생명을 구하는 것이 우리의 목표입니다. 
+          모든 근로자가 매일 안전하게 집으로 돌아갈 수 있어야 한다고 믿습니다.
         </p>
         <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
           <div className="p-4 text-center">
             <span className="icon-pulse mb-3 block text-4xl">👁️</span>
-            <h3 className="mb-2 font-semibold text-primary">See Everything</h3>
-            <p className="text-sm text-muted-foreground">24/7 intelligent monitoring</p>
+            <h3 className="mb-2 font-semibold text-primary">모든 것을 감지</h3>
+            <p className="text-sm text-muted-foreground">24시간 지능형 모니터링</p>
           </div>
           <div className="p-4 text-center">
             <span className="icon-bounce mb-3 block text-4xl">🧠</span>
-            <h3 className="mb-2 font-semibold text-primary">Think Smart</h3>
-            <p className="text-sm text-muted-foreground">AI-powered risk assessment</p>
+            <h3 className="mb-2 font-semibold text-primary">스마트하게 사고 예측</h3>
+            <p className="text-sm text-muted-foreground">AI 기반 위험 평가</p>
           </div>
           <div className="p-4 text-center">
             <span className="icon-rotate mb-3 block text-4xl">⚡</span>
-            <h3 className="mb-2 font-semibold text-primary">Act Fast</h3>
-            <p className="text-sm text-muted-foreground">Instant alert system</p>
+            <h3 className="mb-2 font-semibold text-primary">신속한 대응</h3>
+            <p className="text-sm text-muted-foreground">즉각적인 알림 시스템</p>
           </div>
         </div>
       </Card>
@@ -51,60 +52,61 @@ export default function AboutPage() {
         <Card className="border bg-card/70 p-6 ring-1 ring-border/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="mb-4 flex items-center space-x-3">
             <span className="icon-bounce text-3xl">🤖</span>
-            <h3 className="text-xl font-semibold text-primary">AI-Powered Detection</h3>
+            <h3 className="text-xl font-semibold text-primary">AI 기반 감지</h3>
           </div>
           <p className="mb-4 text-muted-foreground">
-            Advanced machine learning analyzes video feeds in real-time to detect safety violations, missing PPE, and potential hazards before accidents occur.
+            첨단 머신러닝이 실시간으로 영상 피드를 분석하여 안전 규정 위반, 보호장비 미착용,
+            잠재적 위험 요소를 사고 발생 전에 감지합니다.
           </p>
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Hard hat and safety gear detection</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Behavioral risk analysis</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Equipment malfunction alerts</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>안전모 및 보호장비 감지</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>행동 기반 위험 분석</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>장비 이상 경고</span></li>
           </ul>
         </Card>
 
         <Card className="border bg-card/70 p-6 ring-1 ring-border/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="mb-4 flex items-center space-x-3">
             <span className="icon-pulse text-3xl">📊</span>
-            <h3 className="text-xl font-semibold text-primary">Smart Analytics</h3>
+            <h3 className="text-xl font-semibold text-primary">스마트 분석</h3>
           </div>
           <p className="mb-4 text-muted-foreground">
-            Comprehensive reporting and analytics provide insights into safety trends, risk patterns, and actionable recommendations for continuous improvement.
+            종합적인 보고서와 분석을 통해 안전 트렌드, 위험 패턴, 개선을 위한 실행 가능한 인사이트를 제공합니다.
           </p>
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Real-time safety scorecards</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Predictive risk modeling</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Compliance tracking</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>실시간 안전 점수판</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>예측 기반 위험 모델링</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>규정 준수 추적</span></li>
           </ul>
         </Card>
 
         <Card className="border bg-card/70 p-6 ring-1 ring-border/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="mb-4 flex items-center space-x-3">
             <span className="icon-rotate text-3xl">🚨</span>
-            <h3 className="text-xl font-semibold text-primary">Instant Alerts</h3>
+            <h3 className="text-xl font-semibold text-primary">즉각적인 알림</h3>
           </div>
           <p className="mb-4 text-muted-foreground">
-            Multi-channel alerts ensure immediate notification of safety incidents via email, SMS, and integrations.
+            이메일, 문자, 시스템 연동을 통한 다채널 경고로 안전 사고를 즉시 알립니다.
           </p>
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Real-time emergency alerts</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Customizable severity levels</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Protocol integrations</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>실시간 비상 알림</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>사용자 맞춤형 심각도 단계</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>프로토콜 연동</span></li>
           </ul>
         </Card>
 
         <Card className="border bg-card/70 p-6 ring-1 ring-border/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
           <div className="mb-4 flex items-center space-x-3">
             <span className="icon-bounce text-3xl">🔒</span>
-            <h3 className="text-xl font-semibold text-primary">Enterprise Security</h3>
+            <h3 className="text-xl font-semibold text-primary">기업 보안</h3>
           </div>
           <p className="mb-4 text-muted-foreground">
-            Enterprise-grade security with encryption, role-based access control, and compliance with industry standards.
+            암호화, 역할 기반 접근 제어, 산업 표준 준수를 갖춘 기업 수준의 보안을 제공합니다.
           </p>
           <ul className="space-y-2 text-sm">
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>End-to-end encryption</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Role-based permissions</span></li>
-            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>Audit trail & compliance</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>종단간 암호화</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>역할 기반 권한 관리</span></li>
+            <li className="flex items-center space-x-2"><span className="text-emerald-600">✓</span><span>감사 추적 및 규정 준수</span></li>
           </ul>
         </Card>
       </div>
@@ -112,27 +114,27 @@ export default function AboutPage() {
       {/* Tech */}
       <Card className="border bg-card/70 p-8 ring-1 ring-border/60 backdrop-blur supports-[backdrop-filter]:bg-card/50">
         <h2 className="bg-gradient-to-r from-sky-500 to-emerald-500 bg-clip-text text-center text-3xl font-bold text-transparent">
-          Powered by Cutting-Edge Technology
+          최첨단 기술로 구동됩니다
         </h2>
         <div className="mt-6 grid grid-cols-2 gap-6 text-center md:grid-cols-4">
           <div className="p-4">
             <span className="icon-pulse mb-3 block text-4xl">🧠</span>
-            <h4 className="mb-1 font-semibold text-primary">Machine Learning</h4>
+            <h4 className="mb-1 font-semibold text-primary">머신러닝</h4>
             <p className="text-xs text-muted-foreground">TensorFlow & PyTorch</p>
           </div>
           <div className="p-4">
             <span className="icon-bounce mb-3 block text-4xl">👁️</span>
-            <h4 className="mb-1 font-semibold text-primary">Computer Vision</h4>
+            <h4 className="mb-1 font-semibold text-primary">컴퓨터 비전</h4>
             <p className="text-xs text-muted-foreground">OpenCV & YOLO</p>
           </div>
           <div className="p-4">
             <span className="icon-rotate mb-3 block text-4xl">☁️</span>
-            <h4 className="mb-1 font-semibold text-primary">Cloud Computing</h4>
+            <h4 className="mb-1 font-semibold text-primary">클라우드 컴퓨팅</h4>
             <p className="text-xs text-muted-foreground">AWS & Azure</p>
           </div>
           <div className="p-4">
             <span className="icon-pulse mb-3 block text-4xl">📱</span>
-            <h4 className="mb-1 font-semibold text-primary">Mobile Ready</h4>
+            <h4 className="mb-1 font-semibold text-primary">모바일 지원</h4>
             <p className="text-xs text-muted-foreground">iOS & Android</p>
           </div>
         </div>
@@ -144,16 +146,16 @@ export default function AboutPage() {
           <span className="icon-rotate text-9xl">⚙️</span>
         </div>
         <div className="relative z-10 text-center">
-          <h2 className="mb-4 text-3xl font-bold">Ready to Transform Your Safety?</h2>
+          <h2 className="mb-4 text-3xl font-bold">안전 혁신을 시작할 준비 되셨나요?</h2>
           <p className="mx-auto mb-8 max-w-2xl text-lg opacity-90">
-            Join thousands of companies that trust SafeScope to protect their most valuable asset — their people.
+            가장 소중한 자산인 ‘사람’을 지키기 위해 SafeScope와 함께하세요.
           </p>
           <div className="flex flex-col justify-center gap-4 sm:flex-row">
             <Button size="lg" variant="secondary" className="border-white/30 bg-white/20 hover:bg-white/30">
-              <span className="mr-2 text-xl">📞</span> Contact Sales
+              <span className="mr-2 text-xl">📞</span> 영업팀 문의
             </Button>
             <Button size="lg" variant="secondary" className="border-white/30 bg-white/20 hover:bg-white/30">
-              <span className="mr-2 text-xl">🚀</span> Start Free Trial
+              <span className="mr-2 text-xl">🚀</span> 무료 체험 시작
             </Button>
           </div>
         </div>

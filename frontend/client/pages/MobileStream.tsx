@@ -12,11 +12,10 @@ export default function MobileStream() {
   const [sending, setSending] = useState(false);
   const [fps, setFps] = useState(6);                 // iOS는 5~8이 안정적
 
-  function wsPushUrl() {
+  const wsPushUrl = () => {
     const proto = location.protocol === "https:" ? "wss" : "ws";
-    // ✅ WebSocket 푸시 엔드포인트는 push-ws 입니다(중요!)
-    return `${proto}://${location.host}/api/stream/push-ws`;
-  }
+    return `${proto}://${location.host}/api/stream/push-ws`; // ← 반드시 push-ws
+  };
 
   async function start() {
     // 1) 카메라 열기 (iOS: HTTPS + 사용자 제스처 + muted + playsInline 필요)
@@ -66,11 +65,11 @@ export default function MobileStream() {
       ctx.drawImage(v, 0, 0, w, h);
 
       const blob: Blob = await new Promise((res) =>
-        canvas.toBlob((b) => res(b!), "image/jpeg", 0.8)
+        canvas.toBlob((b) => res(b!), "image/jpeg", 0.9)   // 품질 0.9 권장
       );
       if (blob && wsRef.current?.readyState === WebSocket.OPEN) {
         const buf = await blob.arrayBuffer();
-        wsRef.current.send(buf);
+        wsRef.current.send(buf);                            // ← fetch() 금지
       }
 
       // FPS 제한: setTimeout으로 텀을 주고 rAF 재호출

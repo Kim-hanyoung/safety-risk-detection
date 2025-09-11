@@ -14,10 +14,6 @@ import RiskLevelBadge from "@/components/common/RiskLevelBadge";
 import Notifications from "@/components/common/Notifications";
 import { useAlerts } from "@/context/alerts";
 
-// ✅ 추가: 로그인 상태/로그아웃 사용
-import { useAuth } from "@/context/auth";
-import { useState } from "react";
-
 const navItemClass = ({ isActive }) =>
   `px-3 py-2 rounded-md text-sm font-medium transition-colors ${
     isActive
@@ -25,13 +21,11 @@ const navItemClass = ({ isActive }) =>
       : "text-foreground/80 hover:bg-accent hover:text-accent-foreground"
   }`;
 
+import { useState } from "react";
+
 export default function SiteHeader() {
   const { risk } = useAlerts();
   const [lang, setLang] = useState("EN");
-
-  // ✅ 로그인 상태/로그아웃
-  const { user, logout } = useAuth();
-
   return (
     <header className="sticky top-0 z-40 w-full border-b bg-background/80 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto flex h-16 items-center justify-between">
@@ -40,7 +34,9 @@ export default function SiteHeader() {
             <HardHat className="h-6 w-6 text-primary" />
             <TriangleAlert className="absolute -right-2 -top-2 h-3 w-3 text-yellow-500 animate-pulse" />
           </div>
-          <span className="text-lg font-extrabold tracking-tight">SafeScope</span>
+          <span className="text-lg font-extrabold tracking-tight">
+            SafeScope
+          </span>
         </Link>
 
         <nav className="hidden gap-1 md:flex">
@@ -69,44 +65,16 @@ export default function SiteHeader() {
             <RiskLevelBadge level={risk} small />
             <Notifications />
           </div>
-
-          {/* 언어 토글은 항상 표시 */}
-          <button
-            onClick={() => setLang((l) => (l === "EN" ? "KR" : "EN"))}
-            className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent"
+          <Button
+            asChild
+            size="sm"
+            variant="outline"
+            className="hidden md:inline-flex"
           >
-            <Languages className="h-4 w-4" /> {lang}
-          </button>
-
-          {/* ✅ 로그인/로그아웃 버튼 분기 */}
-          {user ? (
-            <>
-              <span className="hidden md:inline text-sm text-foreground/80">
-                Hi, {user.name ?? user.email}
-              </span>
-              <Button
-                size="sm"
-                variant="outline"
-                className="hidden md:inline-flex"
-                onClick={logout}
-              >
-                Logout
-              </Button>
-            </>
-          ) : (
-            <Button
-              asChild
-              size="sm"
-              variant="outline"
-              className="hidden md:inline-flex"
-            >
-              <Link to="/auth" className="flex items-center">
-                <LogIn className="mr-2 h-4 w-4" /> Login
-              </Link>
-            </Button>
-          )}
-
-          {/* Get Started는 유지 (원하면 로그인 여부로 리다이렉션 변경 가능) */}
+            <Link to="/auth" className="flex items-center">
+              <LogIn className="mr-2 h-4 w-4" /> Login
+            </Link>
+          </Button>
           <Button
             asChild
             size="sm"

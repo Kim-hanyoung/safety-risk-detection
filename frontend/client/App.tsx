@@ -43,7 +43,14 @@ const App = () => (
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/about" element={<About />} />
-                  <Route path="/mobile-stream" element={<MobileStream />} />
+                  <Route path="/risk-report" element={<RiskReport />} />
+                  <Route path="/image-analysis" element={<ImageAnalysis />} />
+                  <Route path="/video-detection" element={<VideoDetection />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/forum" element={<Forum />} />
+                  <Route path="/forum/:id" element={<ForumPost />} />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
 
                   {/* ✅ /risk-report는 로그인 필요 */}
                   <Route

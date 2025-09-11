@@ -16,7 +16,7 @@ export default function VideoDetection() {
   const [pullUrl, setPullUrl] = useState("");
   const [pullRunning, setPullRunning] = useState(false);
 
-  // 시청자 WS 연결 (브라우저)
+  // 시청자 WS 연결 (브라우저 → 서버 /api/stream/ws)
   useEffect(() => {
     let alive = true;
     let ws: WebSocket | null = null;
@@ -37,10 +37,10 @@ export default function VideoDetection() {
         try {
           const msg = JSON.parse(ev.data);
           if (msg.type === "frame" && typeof msg.image === "string") {
-            // ✅ 서버에서 보내는 건 data:image/jpeg;base64,... 형식
+            // 서버는 data:image/jpeg;base64,... 형식으로 전달
             setFrame(msg.image);
           } else if (msg.type === "alert") {
-            // 필요 시 토스트/배지 표시
+            // TODO: 토스트/배지 처리 가능
             // console.log("ALERT:", msg);
           }
         } catch {}
@@ -65,7 +65,7 @@ export default function VideoDetection() {
     };
   }, []);
 
-  // Pull 모드 시작/중지
+  // Pull 모드 시작/중지 (IP 카메라/MJPEG 등)
   async function startPull() {
     if (!pullUrl.trim()) return;
     await fetch("/api/stream/start", {
@@ -115,7 +115,9 @@ export default function VideoDetection() {
             style={{ objectFit: "contain", maxHeight: "80vh" }}
           />
         ) : (
-          <div className="text-sm text-muted-foreground">대기 중… (모바일에서 /mobile-stream → Start 를 누르거나 Pull을 시작하세요)</div>
+          <div className="text-sm text-muted-foreground">
+            대기 중… (모바일에서 <code>/mobile-stream</code> → <b>Start</b> 를 누르거나 Pull을 시작하세요)
+          </div>
         )}
       </div>
 
