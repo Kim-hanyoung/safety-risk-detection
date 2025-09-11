@@ -43,9 +43,9 @@ export default function SiteHeader() {
           <NavLink to="/" className={navItemClass} end>
             Home
           </NavLink>
-          <NavLink to="/about" className={navItemClass}>
+          {/* <NavLink to="/about" className={navItemClass}>
             About
-          </NavLink>
+          </NavLink> */}
           <NavLink to="/risk-report" className={navItemClass}>
             <BarChart3 className="mr-1 h-4 w-4" /> Report
           </NavLink>
@@ -61,10 +61,10 @@ export default function SiteHeader() {
         </nav>
 
         <div className="flex items-center gap-2">
-          <div className="hidden items-center gap-2 md:flex">
+          {/* <div className="hidden items-center gap-2 md:flex">
             <RiskLevelBadge level={risk} small />
             <Notifications />
-          </div>
+          </div> */}
           <Button
             asChild
             size="sm"
