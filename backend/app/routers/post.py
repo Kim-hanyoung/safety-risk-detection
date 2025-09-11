@@ -1,6 +1,7 @@
+# app/routers/post.py
 from fastapi import APIRouter, Depends, HTTPException, Query, UploadFile, File
 from sqlalchemy.orm import Session
-from typing import Optional, Literal
+from typing import Optional, Literal, List, Dict, Any
 from ..db import get_db
 from ..models.post import Post, Comment
 from ..models.user import User
@@ -9,45 +10,34 @@ from ..schemas.post import PostCreate, PostOut, PostDetail, PageOut, PostUpdate
 from fastapi.responses import FileResponse
 import os, shutil, uuid
 
-
 # 업로드 디렉토리
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
-
 router = APIRouter(prefix="/posts", tags=["posts"])
-
 
 # 허용되는 카테고리
 Category = Literal["reports", "general"]
 
 
-
-
+# -----------------------------
+# 공통 유틸
+# -----------------------------
 def get_user(db: Session, user_id: str) -> User:
     u = db.query(User).get(user_id)
     if not u:
         raise HTTPException(404, "User not found")
     return u
 
-
-
-
 def ensure_can_edit(user: User, post: Post):
     if user.role != "admin" and post.author_id != user.id:
         raise HTTPException(403, "Forbidden")
-
-
-
 
 def ensure_can_edit_comment(user: User, comment: Comment):
     if user.role != "admin" and comment.author_id != user.id:
         raise HTTPException(403, "Forbidden")
 
-
-
-
-# 📌 attachments를 항상 {file_name, file_url} 형태로 normalize
+# attachments를 항상 {file_name, file_url} 형태로 normalize
 def normalize_attachments(meta: Optional[dict]) -> list[dict]:
     if not meta:
         return []
@@ -63,8 +53,15 @@ def normalize_attachments(meta: Optional[dict]) -> list[dict]:
             })
     return result
 
-
-
+def serialize_comment(c: Comment) -> Dict[str, Any]:
+    return {
+        "id": c.id,
+        "post_id": c.post_id,
+        "author_id": c.author_id,
+        "content": c.content,
+        "created_at": getattr(c, "created_at", None),
+        "updated_at": getattr(c, "updated_at", None),
+    }
 
 def serialize_post(p: Post) -> dict:
     """ORM Post 객체를 dict로 변환하면서 attachments를 최상위로 정리"""
@@ -84,9 +81,9 @@ def serialize_post(p: Post) -> dict:
     }
 
 
-
-
+# -----------------------------
 # 게시글 목록
+# -----------------------------
 @router.get("/", response_model=PageOut)
 def list_posts(
     category: Optional[Category] = Query(None),
@@ -98,10 +95,8 @@ def list_posts(
     if category:
         q = q.filter(Post.category == category)
 
-
     total = q.count()
     items = q.offset((page - 1) * page_size).limit(page_size).all()
-
 
     return {
         "items": [serialize_post(p) for p in items],
@@ -111,20 +106,25 @@ def list_posts(
     }
 
 
-
-
-# 게시글 단일 조회
+# -----------------------------
+# 게시글 단일 조회(+댓글)
+# -----------------------------
 @router.get("/{post_id}", response_model=PostDetail)
 def get_post(post_id: str, db: Session = Depends(get_db)):
     p = db.query(Post).get(post_id)
     if not p:
         raise HTTPException(404, "Post not found")
-    return serialize_post(p)
+
+    data = serialize_post(p)
+    # 상세 조회 시에만 댓글 포함
+    comments = db.query(Comment).filter(Comment.post_id == p.id).order_by(Comment.created_at.asc()).all()
+    data["comments"] = [serialize_comment(c) for c in comments]
+    return data
 
 
-
-
+# -----------------------------
 # 게시글 생성
+# -----------------------------
 @router.post("/", response_model=PostOut)
 def create_post(
     body: PostCreate,
@@ -145,7 +145,9 @@ def create_post(
     return serialize_post(p)
 
 
+# -----------------------------
 # 게시글 수정
+# -----------------------------
 @router.patch("/{post_id}", response_model=PostOut)
 def update_post(
     post_id: str,
@@ -159,7 +161,6 @@ def update_post(
         raise HTTPException(404, "Post not found")
     ensure_can_edit(user, p)
 
-
     if body.title is not None:
         p.title = body.title
     if body.content_md is not None:
@@ -170,15 +171,14 @@ def update_post(
         # ✅ 병합이 아니라 덮어쓰기 (삭제 반영 가능)
         p.meta = body.meta
 
-
     db.commit()
     db.refresh(p)
     return serialize_post(p)
 
 
-
-
+# -----------------------------
 # 게시글 삭제
+# -----------------------------
 @router.delete("/{post_id}", response_model=dict)
 def delete_post(
     post_id: str,
@@ -195,32 +195,89 @@ def delete_post(
     return {"ok": True}
 
 
-
-
-# 파일 업로드
+# -----------------------------
+# 파일 업로드/다운로드
+# -----------------------------
 @router.post("/upload", response_model=dict)
 async def upload_post_file(file: UploadFile = File(...)):
     ext = os.path.splitext(file.filename)[1]
     filename = f"{uuid.uuid4().hex}{ext}"
     file_path = os.path.join(UPLOAD_DIR, filename)
 
-
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
-
 
     return {
         "file_name": file.filename,
         "file_url": f"/uploads/{filename}",
     }
 
-
-
-
-# 업로드된 파일 조회
 @router.get("/files/{filename}")
 async def get_post_file(filename: str):
     file_path = os.path.join(UPLOAD_DIR, filename)
     if not os.path.exists(file_path):
         raise HTTPException(404, "File not found")
     return FileResponse(file_path)
+
+
+# =============================
+# 💬 댓글 CRUD
+# =============================
+from pydantic import BaseModel
+
+class CommentCreate(BaseModel):
+    content: str
+
+@router.post("/{post_id}/comments", response_model=dict)
+def create_comment(
+    post_id: str,
+    body: CommentCreate,
+    db: Session = Depends(get_db),
+    sub: str = Depends(current_sub),
+):
+    post = db.query(Post).get(post_id)
+    if not post:
+        raise HTTPException(404, "Post not found")
+
+    c = Comment(post_id=post.id, author_id=sub, content=body.content)
+    db.add(c)
+    db.commit()
+    db.refresh(c)
+    return {"ok": True, "comment": serialize_comment(c)}
+
+# ⛏ 여기 한 줄만 바꿔주세요
+@router.patch("/{post_id}/comments/{comment_id}", response_model=dict)
+def update_comment(
+    post_id: str,
+    comment_id: str,
+    body: CommentCreate,
+    db: Session = Depends(get_db),
+    sub: str = Depends(current_sub),
+):
+    c = db.query(Comment).get(comment_id)
+    if not c or str(c.post_id) != str(post_id):
+        raise HTTPException(404, "Comment not found")
+    user = get_user(db, sub)
+    ensure_can_edit_comment(user, c)
+
+    c.content = body.content
+    db.commit(); db.refresh(c)
+    return {"ok": True, "comment": serialize_comment(c)}
+
+
+@router.delete("/{post_id}/comments/{comment_id}", response_model=dict)
+def delete_comment(
+    post_id: str,
+    comment_id: str,
+    db: Session = Depends(get_db),
+    sub: str = Depends(current_sub),
+):
+    c = db.query(Comment).get(comment_id)
+    if not c or str(c.post_id) != str(post_id):
+        raise HTTPException(404, "Comment not found")
+    user = get_user(db, sub)
+    ensure_can_edit_comment(user, c)
+
+    db.delete(c)
+    db.commit()
+    return {"ok": True}
