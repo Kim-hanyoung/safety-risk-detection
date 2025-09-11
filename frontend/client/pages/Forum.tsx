@@ -1,214 +1,178 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { listPosts, createPost, uploadAttachment, Post, Attachment } from "@/lib/posts";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
-
-const categories = ["General", "Near-Miss Reports", "Best Practices", "Q&A"];
 
 export default function Forum() {
-  const [active, setActive] = useState("General");
-  const [posts, setPosts] = useState([
-    {
-      id: "1",
-      title: "Helmet detection tips",
-      category: "Best Practices",
-      tags: ["PPE"],
-      author: "Mina",
-      replies: 4,
-      pinned: true,
-      starred: true,
-      time: new Date().toISOString(),
-    },
-    {
-      id: "2",
-      title: "Near-miss on ladder",
-      category: "Near-Miss Reports",
-      tags: ["Fall"],
-      author: "Jin",
-      replies: 2,
-      pinned: false,
-      starred: false,
-      time: new Date().toISOString(),
-    },
-  ]);
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const filtered = useMemo(
-    () => posts.filter((p) => p.category === active),
-    [posts, active],
-  );
+  const [creating, setCreating] = useState(false);
+  const [title, setTitle] = useState("");
+  const [content, setContent] = useState("");
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const [uploading, setUploading] = useState(false);
 
-  const [draft, setDraft] = useState({
-    title: "",
-    category: "General",
-    body: "",
-  });
+  const [category, setCategory] = useState<"general" | "reports">("general");
+
+  async function reload() {
+    setLoading(true);
+    try {
+      const data = await listPosts({ category });
+      setPosts(data.items);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    reload();
+  }, [category]);
+
+  // 새 글 저장
+  async function onCreatePost() {
+    if (!title.trim() || !content.trim()) return;
+    await createPost({
+      title,
+      content_md: content,
+      category,
+      meta: { attachments },
+    });
+    setTitle("");
+    setContent("");
+    setAttachments([]);
+    setCreating(false);
+    reload();
+  }
+
+  // 파일 업로드
+  async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!e.target.files?.length) return;
+    const file = e.target.files[0];
+    setUploading(true);
+    try {
+      const data = await uploadAttachment(file);
+      setAttachments((prev) => [...prev, data]);
+    } finally {
+      setUploading(false);
+    }
+  }
 
   return (
-    <div className="container mx-auto grid gap-6 py-8 lg:grid-cols-[1fr_320px]">
-      <div>
-        <div className="mb-3 flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Community Forum</h1>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button>Create Post</Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>New Post</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-3">
-                <div>
-                  <Label htmlFor="title">Title</Label>
-                  <Input
-                    id="title"
-                    value={draft.title}
-                    onChange={(e) =>
-                      setDraft({ ...draft, title: e.target.value })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label>Category</Label>
-                  <select
-                    className="mt-1 w-full rounded-md border bg-background p-2"
-                    value={draft.category}
-                    onChange={(e) =>
-                      setDraft({ ...draft, category: e.target.value })
-                    }
-                  >
-                    {categories.map((c) => (
-                      <option key={c}>{c}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <Label>Body</Label>
-                  <Textarea
-                    rows={6}
-                    value={draft.body}
-                    onChange={(e) =>
-                      setDraft({ ...draft, body: e.target.value })
-                    }
-                  />
-                </div>
-                <div className="text-sm text-muted-foreground">
-                  Attach image (mock)
-                </div>
-                <div className="flex justify-end gap-2">
-                  <Button
-                    variant="secondary"
-                    onClick={() =>
-                      setDraft({ title: "", category: "General", body: "" })
-                    }
-                  >
-                    Clear
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      setPosts([
-                        {
-                          id: Math.random().toString(36).slice(2),
-                          title: draft.title || "Untitled",
-                          category: draft.category,
-                          tags: [],
-                          author: "You",
-                          replies: 0,
-                          pinned: false,
-                          starred: true,
-                          time: new Date().toISOString(),
-                        },
-                        ...posts,
-                      ]);
-                    }}
-                  >
-                    Publish
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
+    <div className="container mx-auto max-w-3xl py-8 space-y-6">
+      {/* 카테고리 탭 + New Post 버튼 */}
+      <div className="flex justify-between items-center">
+        <div className="flex gap-2">
+          <Button
+            variant={category === "general" ? "default" : "outline"}
+            onClick={() => setCategory("general")}
+          >
+            General
+          </Button>
+          <Button
+            variant={category === "reports" ? "default" : "outline"}
+            onClick={() => setCategory("reports")}
+          >
+            Reports
+          </Button>
         </div>
 
-        <Tabs value={active} onValueChange={setActive}>
-          <TabsList className="mb-3 flex flex-wrap gap-2 p-2">
-            {categories.map((c) => (
-              <TabsTrigger key={c} value={c}>
-                {c}
-              </TabsTrigger>
-            ))}
-          </TabsList>
-          <TabsContent value={active}>
-            <div className="space-y-2">
-              {filtered.map((p) => (
-                <Link
-                  key={p.id}
-                  to={`/forum/${p.id}`}
-                  className="block rounded-lg border p-3 hover:bg-accent/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="font-medium">{p.title}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {p.author} • {new Date(p.time).toLocaleString()} •{" "}
-                        {p.replies} replies
-                      </p>
-                    </div>
-                    <div className="text-xs text-muted-foreground">
-                      {p.pinned ? "📌" : ""} {p.starred ? "⭐" : ""}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-              {filtered.length === 0 && (
-                <p className="text-sm text-muted-foreground">No posts yet.</p>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+        {!creating && (
+          <Button
+            onClick={() => setCreating(true)}
+            className="bg-orange-500 text-white hover:bg-orange-600"
+          >
+            New Post
+          </Button>
+        )}
       </div>
 
-      <div className="space-y-6">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Contributors</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="space-y-2 text-sm">
-              <li>Jin — 124 pts</li>
-              <li>Mina — 118 pts</li>
-              <li>Hana — 95 pts</li>
-            </ul>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader>
-            <CardTitle>Safety Guidelines</CardTitle>
-            <CardDescription>Community code of conduct</CardDescription>
-          </CardHeader>
-          <CardContent className="text-sm text-muted-foreground space-y-1">
-            <p>• Be respectful and constructive.</p>
-            <p>• No personal data in posts or images.</p>
-            <p>• Tag posts appropriately.</p>
-          </CardContent>
-        </Card>
-      </div>
+      {/* 새 글 작성 */}
+      {creating && (
+        <div className="space-y-3 border rounded p-4">
+          <Input
+            placeholder="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+          />
+          <Textarea
+            placeholder="Write in Markdown..."
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+          />
+          {/* 파일 업로드 */}
+          <div className="space-y-2">
+            <input
+              id="file-upload"
+              type="file"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <label
+              htmlFor="file-upload"
+              className="bg-orange-500 text-white px-4 py-2 rounded cursor-pointer hover:bg-orange-600"
+            >
+              File Upload
+            </label>
+            {uploading && <div>Uploading…</div>}
+            {attachments.map((att, idx) =>
+              att.file_url.match(/\.(jpg|jpeg|png|gif|webp)$/i) ? (
+                <div key={idx} className="space-y-1">
+                  <img
+                    src={att.file_url}
+                    alt={att.file_name}
+                    className="max-w-md rounded border"
+                  />
+                </div>
+              ) : (
+                <div key={idx}>{att.file_name}</div>
+              )
+            )}
+          </div>
+
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              className="bg-orange-500 text-white hover:bg-orange-600"
+              onClick={() => setCreating(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={onCreatePost}
+              className="bg-orange-500 text-white hover:bg-orange-600"
+            >
+              Publish
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 게시글 목록 */}
+      {loading ? (
+        <div>Loading…</div>
+      ) : (
+        <div className="space-y-4">
+          {posts.map((p) => (
+            <a
+              key={p.id}
+              href={`/forum/${p.id}`}
+              className="block border rounded p-4 hover:bg-muted"
+            >
+              <div className="text-sm text-muted-foreground">
+                {p.category.toUpperCase()} ·{" "}
+                {new Date(p.created_at).toLocaleString()}
+              </div>
+              <div className="font-bold">{p.title}</div>
+              <div className="text-sm">{p.author.name ?? p.author.email}</div>
+              <div className="text-muted-foreground mt-2 line-clamp-2">
+                {p.content_md}
+              </div>
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

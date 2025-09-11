@@ -1,31 +1,35 @@
 // frontend/client/pages/ImageAnalysis.tsx
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { analyzeImage, DetectRes } from "@/lib/detect";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { useAuth } from "@/context/auth";
+import { Link } from "react-router-dom";
 
-type Item = {
-  label: string;
-  severity: "low" | "medium" | "high" | string;
-  description: string;
-};
-
-type AnalyzeResponse = {
-  items: Item[];
-  llm_summary?: string | null;
-};
-
-const raw = (import.meta as any).env?.VITE_API_BASE?.toString().trim();
-const API_BASE =
-  raw && /^https?:\/\//i.test(raw) ? raw.replace(/\/+$/, "") : "http://127.0.0.1:8000";
-
-
+/**
+ * 기존 API/타입(DetectRes, analyzeImage) 그대로 사용
+ * UI만 투패널 카드형으로 재구성
+ */
 export default function ImageAnalysis() {
+  const { user } = useAuth();
+
+  // ── 상태
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [analyzing, setAnalyzing] = useState(false);
-  const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<Item[]>([]);
-  const [summary, setSummary] = useState<string>("");
 
-  // 파일 선택 시 미리보기 생성
+  const [model, setModel] = useState<"fire" | "ppe" | "both">("both");
+  const [publish, setPublish] = useState(false);
+  const [title, setTitle] = useState("");
+
+  const [res, setRes] = useState<DetectRes | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // 진행바(시각효과)
+  const [progress, setProgress] = useState(0);
+  const timerRef = useRef<number | null>(null);
+
+  // ── 미리보기 URL 관리
   useEffect(() => {
     if (!file) {
       setPreview(null);
@@ -36,147 +40,193 @@ export default function ImageAnalysis() {
     return () => URL.revokeObjectURL(url);
   }, [file]);
 
-  const onChangeFile = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    setFile(f ?? null);
-  };
+  // ── 진행바 타이머
+  useEffect(() => {
+    if (loading) {
+      setProgress(0);
+      timerRef.current = window.setInterval(() => {
+        setProgress((p) => Math.min(95, p + Math.random() * 8));
+      }, 250);
+      return () => {
+        if (timerRef.current) window.clearInterval(timerRef.current);
+      };
+    } else {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+    }
+  }, [loading]);
 
-  const runAnalysis = async () => {
-    if (!file) return;
-    setAnalyzing(true);
-    setProgress(0);
-    setResults([]);
-    setSummary("");
+  // ── 제출
+  async function onSubmit(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!file) { setErr("이미지를 선택하세요"); return; }
+    if (publish && !user) { setErr("게시하려면 로그인하세요"); return; }
 
-    // 진행바 시각효과
-    const timer = setInterval(() => {
-      setProgress((p) => Math.min(95, p + Math.random() * 8));
-    }, 250);
+    setErr(null);
+    setRes(null);
+    setLoading(true);
 
     try {
-      const form = new FormData();
-      form.append("file", file);
-
-      const res = await fetch(`${API_BASE}/api/image/analyze`, {
-        method: "POST",
-        body: form,
-      });
-
-      if (!res.ok) {
-        const t = await res.text();
-        throw new Error(t || `HTTP ${res.status}`);
-      }
-
-      const data: AnalyzeResponse = await res.json();
-      setResults(data.items ?? []);
-      setSummary(data.llm_summary ?? "");
-    } catch (err: any) {
-      setResults([
-        {
-          label: "Analysis failed",
-          severity: "high",
-          description: String(err?.message || err),
-        },
-      ]);
+      const out = await analyzeImage(file, model, publish, title || undefined);
+      setRes(out);
+    } catch (e: any) {
+      setErr(e?.message ?? "분석 실패");
     } finally {
-      clearInterval(timer);
+      setLoading(false);
       setProgress(100);
-      setAnalyzing(false);
+      // 살짝 후 진행바 초기화
       setTimeout(() => setProgress(0), 700);
     }
-  };
+  }
 
-  const SeverityTag: React.FC<{ s: Item["severity"] }> = ({ s }) => {
-    const style =
-      s === "high"
-        ? { background: "#fee2e2", color: "#991b1b" }
-        : s === "medium"
-        ? { background: "#fef3c7", color: "#92400e" }
-        : { background: "#dcfce7", color: "#14532d" };
-    return (
-      <span style={{ ...style, padding: "2px 8px", borderRadius: 8, fontSize: 12 }}>
-        {s}
-      </span>
-    );
-  };
+  // 간단 안내문
+  const helperText = useMemo(
+    () => "Upload a photo to detect PPE and hazards.",
+    []
+  );
 
   return (
     <div style={{ padding: 20 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
-        {/* 왼쪽: 업로드/실행 */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: 20,
+        }}
+      >
+        {/* ───────────────────────── 좌측: 업로드/옵션/실행 ───────────────────────── */}
         <div
           style={{
-            background: "linear-gradient(135deg,#fff, #fde9d6)",
+            background: "linear-gradient(135deg,#fff,#fde9d6)",
             borderRadius: 16,
             padding: 20,
             border: "1px solid #eee",
           }}
         >
           <h2 style={{ fontSize: 24, marginBottom: 6 }}>Image Analysis</h2>
-          <p style={{ marginTop: 0, color: "#666" }}>
-            Upload a photo to detect PPE and hazards.
-          </p>
+          <p style={{ marginTop: 0, color: "#666" }}>{helperText}</p>
 
-          <div style={{ display: "flex", gap: 12, alignItems: "center", marginTop: 16 }}>
-            <input
-              type="file"
-              accept="image/*"
-              onChange={onChangeFile}
-              style={{ flex: 1 }}
-            />
-            <button
-              onClick={runAnalysis}
-              disabled={!file || analyzing}
-              style={{
-                background: analyzing ? "#ddd" : "#f59e0b",
-                color: "#111",
-                border: "none",
-                padding: "10px 14px",
-                borderRadius: 8,
-                cursor: !file || analyzing ? "not-allowed" : "pointer",
-                fontWeight: 600,
-              }}
-            >
-              {analyzing ? "Analyzing…" : "Run Analysis"}
-            </button>
-          </div>
+          <form onSubmit={onSubmit} className="space-y-3" style={{ marginTop: 12 }}>
+            <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+              <Input
+                type="file"
+                accept="image/*"
+                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+                style={{ flex: 1 }}
+              />
+              <Button
+                type="submit"
+                disabled={!file || loading}
+                variant="default"
+                style={{
+                  background: loading ? "#ddd" : "#f59e0b",
+                  color: "#111",
+                  border: "none",
+                }}
+              >
+                {loading ? "Analyzing…" : "Run Analysis"}
+              </Button>
+            </div>
 
-          {/* 진행바 */}
-          <div
-            style={{
-              height: 10,
-              background: "#f5f5f5",
-              borderRadius: 8,
-              marginTop: 18,
-              overflow: "hidden",
-            }}
-          >
+            {/* 모델 옵션 */}
+            <div style={{ display: "flex", gap: 16, fontSize: 14, marginTop: 6 }}>
+              <label className="inline-flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="model"
+                  checked={model === "both"}
+                  onChange={() => setModel("both")}
+                />{" "}
+                both
+              </label>
+              <label className="inline-flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="model"
+                  checked={model === "fire"}
+                  onChange={() => setModel("fire")}
+                />{" "}
+                fire/smoke
+              </label>
+              <label className="inline-flex items-center gap-1">
+                <input
+                  type="radio"
+                  name="model"
+                  checked={model === "ppe"}
+                  onChange={() => setModel("ppe")}
+                />{" "}
+                PPE
+              </label>
+            </div>
+
+            {/* 게시 옵션 */}
+            <div style={{ marginTop: 6 }}>
+              <label className="inline-flex items-center gap-2" style={{ fontSize: 14 }}>
+                <input
+                  type="checkbox"
+                  checked={publish}
+                  onChange={(e) => setPublish(e.target.checked)}
+                />
+                분석 결과를 Reports 게시판에 자동 게시
+              </label>
+
+              {publish && (
+                <div style={{ marginTop: 8 }}>
+                  <Input
+                    placeholder="게시글 제목 (선택)"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* 진행바 */}
             <div
               style={{
-                width: `${progress}%`,
-                height: "100%",
-                background: "#fde68a",
-                transition: "width 0.25s linear",
+                height: 10,
+                background: "#f5f5f5",
+                borderRadius: 8,
+                marginTop: 12,
+                overflow: "hidden",
               }}
-            />
-          </div>
-
-          {/* 미리보기 */}
-          {preview && (
-            <div style={{ marginTop: 16 }}>
-              <img
-                src={preview}
-                alt="preview"
-                style={{ maxWidth: "100%", borderRadius: 12, border: "1px solid #eee" }}
+            >
+              <div
+                style={{
+                  width: `${progress}%`,
+                  height: "100%",
+                  background: "#fde68a",
+                  transition: "width 0.25s linear",
+                }}
               />
             </div>
-          )}
+
+            {err && (
+              <div className="text-red-600 text-sm" style={{ marginTop: 8 }}>
+                {err}
+              </div>
+            )}
+
+            {/* 미리보기 */}
+            {preview && (
+              <div style={{ marginTop: 12 }}>
+                <img
+                  src={preview}
+                  alt="preview"
+                  style={{
+                    maxWidth: "100%",
+                    borderRadius: 12,
+                    border: "1px solid #eee",
+                  }}
+                />
+              </div>
+            )}
+          </form>
         </div>
 
-        {/* 오른쪽: 결과 */}
+        {/* ───────────────────────── 우측: 결과 패널 ───────────────────────── */}
         <div
           style={{
-            background: "linear-gradient(135deg, #fff, #fdf1cf)",
+            background: "linear-gradient(135deg,#fff,#fdf1cf)",
             borderRadius: 16,
             padding: 20,
             border: "1px solid #eee",
@@ -188,56 +238,68 @@ export default function ImageAnalysis() {
             Detected items and risk factors.
           </p>
 
-          {!analyzing && results.length === 0 && !summary && (
+          {/* 안내 */}
+          {!loading && !res && (
             <p style={{ color: "#777", marginTop: 20 }}>
-              Upload an image and click <b>Run Analysis</b> to see results.
+              이미지를 업로드한 뒤 <b>Run Analysis</b>를 클릭하세요.
             </p>
           )}
 
-          {/* LLM 요약 */}
-          {!analyzing && summary && (
-            <div
-              style={{
-                border: "1px solid #eee",
-                background: "#fafafa",
-                borderRadius: 12,
-                padding: 12,
-                marginTop: 8,
-                whiteSpace: "pre-wrap",
-              }}
-            >
-              <div style={{ fontWeight: 700, marginBottom: 6 }}>Summary</div>
-              <div style={{ fontSize: 14, lineHeight: 1.6 }}>{summary}</div>
-            </div>
-          )}
+          {/* 결과 섹션 */}
+          {res && (
+            <div style={{ marginTop: 12, display: "grid", gap: 16 }}>
+              {/* 원본/주석 이미지 그리드 */}
+              <div className="grid md:grid-cols-2 gap-4" style={{ display: "grid", gap: 12 }}>
+                <figure style={{ border: "1px solid #eee", borderRadius: 12, padding: 8 }}>
+                  <figcaption style={{ fontSize: 12, marginBottom: 6 }}>Original</figcaption>
+                  <img
+                    src={res.original_url}
+                    style={{ width: "100%", borderRadius: 8 }}
+                  />
+                </figure>
 
-          {/* 디텍션 리스트 */}
-          {results.length > 0 && (
-            <div style={{ marginTop: 14, display: "grid", gap: 10 }}>
-              {results.map((it, idx) => (
-                <div
-                  key={idx}
-                  style={{
-                    border: "1px solid #eee",
-                    borderRadius: 10,
-                    padding: 10,
-                    background: "#fff",
-                  }}
-                >
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
+                {Object.entries(res.annotated).map(([k, url]) => (
+                  <figure
+                    key={k}
+                    style={{ border: "1px solid #eee", borderRadius: 12, padding: 8 }}
                   >
-                    <div style={{ fontWeight: 600 }}>{it.label}</div>
-                    <SeverityTag s={it.severity} />
-                  </div>
-                  <div style={{ color: "#555", fontSize: 14 }}>{it.description}</div>
+                    <figcaption style={{ fontSize: 12, marginBottom: 6 }}>
+                      {k.toUpperCase()} annotated
+                    </figcaption>
+                    <img src={url} style={{ width: "100%", borderRadius: 8 }} />
+                  </figure>
+                ))}
+              </div>
+
+              {/* 디텍션 리스트 */}
+              <div style={{ border: "1px solid #eee", borderRadius: 12, padding: 12 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>
+                  Detections ({res.detections.length})
                 </div>
-              ))}
+
+                {res.detections.length === 0 ? (
+                  <div style={{ color: "#777", fontSize: 14 }}>No detections</div>
+                ) : (
+                  <ul style={{ fontSize: 14, display: "grid", gap: 6, margin: 0, paddingLeft: 16 }}>
+                    {res.detections.map((d, i) => (
+                      <li key={i}>
+                        {d.label} — {Math.round(d.conf * 100)}% [
+                        {d.bbox.map((n) => n.toFixed(0)).join(", ")}]
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
+
+              {/* 게시 완료 링크 */}
+              {res.post_id && (
+                <div style={{ fontSize: 14 }}>
+                  게시 완료:{" "}
+                  <Link className="underline" to={`/forum/${res.post_id}?category=reports`}>
+                    보고서 보기
+                  </Link>
+                </div>
+              )}
             </div>
           )}
         </div>
