@@ -185,3 +185,13 @@ async def detect_image(
         resp["post_id"] = p.id
 
     return resp
+
+@router.get("/health", response_model=dict)
+def detect_heath():
+    svc = get_service()
+    return {
+        "fire_loaded": bool(getattr(svc, "fire", None)),
+        "ppe_loaded": bool(getattr(svc, "ppe", None)),
+        "fire_weights": getattr(svc, "fire_weights", None),
+        "ppe_weights": getattr(svc, "ppe_weights", None),
+    }

@@ -19,7 +19,7 @@ from .detect import compute_risk, get_service  # detect.py의 유틸 재사용
 
 router = APIRouter(prefix="/stream", tags=["stream"])
 
-# ==============================================================
+# ============================================================== 
 # 시청자(WebSocket) 관리 및 브로드캐스트
 # ==============================================================
 watchers: Set[WebSocket] = set()
@@ -40,44 +40,44 @@ async def ws_watch(ws: WebSocket):
     await ws.accept()
     watchers.add(ws)
     try:
+        # 클라이언트가 보낸 ping 텍스트를 받아 연결 유지
         while True:
-            # 클라이언트 ping 유지
             await ws.receive_text()
     except WebSocketDisconnect:
         pass
     finally:
         watchers.discard(ws)
 
-# ==============================================================
+# ============================================================== 
 # 공통 유틸: 디텍션 정규화/그리기
 # ==============================================================
 
-# 필요 시 숨길 PPE 라벨 (화면 지저분한 보조 라벨 제거)
+# ⚠️ 필요시 여기서 숨길 PPE 라벨 지정 (화면 지저분한 보조 라벨 숨김)
 PPE_HIDE = {"Person", "Safety Vest", "Safety Cone", "machinery", "vehicle", "Mask", "Hardhat"}
-SHOW_PPE_ONLY_WARNINGS = True  # True면 'NO-' 계열(PPE 미착용)만 노출
+SHOW_PPE_ONLY_WARNINGS = True  # True면 NO- 계열만 노출
 
-# BGR
-FIRE_COLOR = (255, 0, 0)    # 파랑(불/연기)
-PPE_COLOR  = (0, 255, 255)  # 노랑(PPE)
+FIRE_COLOR  = (255,   0,   0)  # BGR 파랑
+PPE_COLOR   = (  0, 255, 255)  # BGR 노랑
+DBG_COLOR   = (255, 255, 255)
 
 def _to_dict(d: Any) -> Dict[str, Any]:
-    """YOLO 결과 객체/딕셔너리를 안전하게 직렬화."""
+    """YOLO 결과 객체/딕셔너리를 안전하게 직렬화"""
     if isinstance(d, dict):
         label = d.get("label")
-        conf = float(d.get("conf", 0.0))
-        bbox = d.get("bbox")
+        conf  = float(d.get("conf", 0.0))
+        bbox  = d.get("bbox")
     else:
         label = getattr(d, "label", None)
-        conf = float(getattr(d, "conf", 0.0))
-        bbox = getattr(d, "bbox", None)
+        conf  = float(getattr(d, "conf", 0.0))
+        bbox  = getattr(d, "bbox", None)
     if isinstance(bbox, (list, tuple)):
         bbox = [float(x) for x in bbox]
     return {"label": str(label), "conf": conf, "bbox": bbox}
 
 def _split_detections(out: Dict[str, Any]) -> Tuple[List[Dict], List[Dict]]:
-    """infer 결과에서 fire/ppe 디텍션 분리."""
+    """infer 결과에서 fire/ppe 디텍션 분리"""
     fire_dets: List[Dict] = []
-    ppe_dets: List[Dict] = []
+    ppe_dets:  List[Dict] = []
 
     if "fire" in out and out["fire"] and "detections" in out["fire"]:
         fire_dets = [_to_dict(d) for d in out["fire"]["detections"]]
@@ -87,17 +87,12 @@ def _split_detections(out: Dict[str, Any]) -> Tuple[List[Dict], List[Dict]]:
 
     # PPE 필터링
     if SHOW_PPE_ONLY_WARNINGS:
-        ppe_dets = [
-            d for d in ppe_dets
-            if str(d["label"]).upper().startswith("NO-") and d["bbox"]
-        ]
+        ppe_dets = [d for d in ppe_dets
+                    if str(d["label"]).upper().startswith("NO-") and d["bbox"]]
     else:
-        ppe_dets = [
-            d for d in ppe_dets
-            if d["bbox"] and str(d["label"]) not in PPE_HIDE
-        ]
+        ppe_dets = [d for d in ppe_dets
+                    if d["bbox"] and str(d["label"]) not in PPE_HIDE]
 
-    # bbox 없는 것은 제거
     fire_dets = [d for d in fire_dets if d["bbox"]]
     return fire_dets, ppe_dets
 
@@ -109,11 +104,19 @@ def _draw_boxes(img: np.ndarray, dets: List[Dict], color: Tuple[int, int, int]) 
         cv2.putText(img, label, (x1, max(12, y1 - 6)),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.5, color, 2)
 
-def _render_overlay(frame: np.ndarray, fire_dets: List[Dict], ppe_dets: List[Dict]) -> np.ndarray:
-    """한 프레임에 fire(파랑), ppe(노랑) 겹쳐 그리기."""
+def _draw_debug_hud(img: np.ndarray, fire_cnt: int, ppe_cnt: int, fire_loaded: bool, ppe_loaded: bool) -> None:
+    """좌상단에 카운터/타임스탬프 찍어서 '정말로 매 프레임 바뀌는지' 육안 확인용"""
+    ts = cv2.getTickCount() / cv2.getTickFrequency()
+    text = f"F:{fire_cnt}  P:{ppe_cnt}  loaded(F:{int(fire_loaded)}/P:{int(ppe_loaded)})  t:{ts:.1f}"
+    cv2.putText(img, text, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, DBG_COLOR, 2)
+
+def _render_overlay(frame: np.ndarray, fire_dets: List[Dict], ppe_dets: List[Dict],
+                    fire_loaded: bool, ppe_loaded: bool) -> np.ndarray:
+    """한 프레임에 fire(파랑), ppe(노랑) 겹쳐 그리기 + 디버그 HUD"""
     view = frame.copy()
     _draw_boxes(view, fire_dets, FIRE_COLOR)
     _draw_boxes(view, ppe_dets, PPE_COLOR)
+    _draw_debug_hud(view, len(fire_dets), len(ppe_dets), fire_loaded, ppe_loaded)
     return view
 
 def _encode_data_url(img_bgr: np.ndarray) -> str:
@@ -122,22 +125,20 @@ def _encode_data_url(img_bgr: np.ndarray) -> str:
         raise RuntimeError("encode failed")
     return "data:image/jpeg;base64," + base64.b64encode(jpg.tobytes()).decode()
 
+# ✨ 핵심: both일 때 두 모델을 **명시적으로 각각** 실행해 합친다
 def _infer_both_forced(svc: YoloService, frame: np.ndarray, kind: str) -> Dict[str, Any]:
-    """
-    핵심: kind가 both일 때 fire와 ppe를 **각각** 실행해 합친다.
-    """
     kind = (kind or "both").lower()
     result: Dict[str, Any] = {}
 
-    if kind in ("fire", "both"):
+    if kind in ("fire", "both") and getattr(svc, "fire", None) is not None:
         try:
-            o = svc.infer(frame, kind="fire")
+            o = svc.infer(frame, kind="fire")  # ndarray 직접
             if isinstance(o, dict) and "fire" in o:
                 result["fire"] = o["fire"]
         except Exception:
             pass
 
-    if kind in ("ppe", "both"):
+    if kind in ("ppe", "both") and getattr(svc, "ppe", None) is not None:
         try:
             o = svc.infer(frame, kind="ppe")
             if isinstance(o, dict) and "ppe" in o:
@@ -147,7 +148,7 @@ def _infer_both_forced(svc: YoloService, frame: np.ndarray, kind: str) -> Dict[s
 
     return result
 
-# ==============================================================
+# ============================================================== 
 # IP 카메라 Pull 모드 (백그라운드 루프)
 # ==============================================================
 class StartBody(BaseModel):
@@ -171,7 +172,7 @@ async def stop_stream():
     return {"ok": True}
 
 async def _pull_loop():
-    """IP 카메라에서 프레임을 당겨와 추론 후 시청자에게 방송."""
+    """IP 카메라에서 프레임을 당겨와 추론 후 시청자에게 방송"""
     svc: YoloService = get_service()
     url: Optional[str] = _state.get("url")
     kind: str = _state.get("kind", "both")
@@ -182,6 +183,9 @@ async def _pull_loop():
     if not cap.isOpened():
         await _broadcast({"type": "error", "message": "cannot open stream"})
         return
+
+    fire_loaded = bool(getattr(svc, "fire", None))
+    ppe_loaded  = bool(getattr(svc, "ppe", None))
 
     try:
         while not _stop.is_set():
@@ -196,7 +200,7 @@ async def _pull_loop():
                 all_dets = fire_dets + ppe_dets
                 risk = compute_risk(all_dets)
 
-                view = _render_overlay(frame, fire_dets, ppe_dets)
+                view = _render_overlay(frame, fire_dets, ppe_dets, fire_loaded, ppe_loaded)
                 data_url = _encode_data_url(view)
 
                 if risk["level"] in ("High", "Critical"):
@@ -222,18 +226,18 @@ async def _pull_loop():
     finally:
         cap.release()
 
-# ==============================================================
-# 모바일 Push (HTTP: dataURL JPEG) — iOS 대응 폴백
+# ============================================================== 
+# 모바일 Push (HTTP: dataURL JPEG) — iOS 대응용 폴백
 # ==============================================================
 _DATAURL_RE = re.compile(r"^data:image\/jpeg;base64,(.+)$", re.I)
 
 class PushBody(BaseModel):
-    image: str                   # "data:image/jpeg;base64,...."
-    kind: str = "both"           # "fire" | "ppe" | "both" | "fire/smoke"
+    image: str                 # "data:image/jpeg;base64,...."
+    kind: str = "both"         # "fire" | "ppe" | "both" | "fire/smoke"
 
 @router.post("/push")
 async def push_frame_http(body: PushBody):
-    """모바일이 dataURL(JPEG)을 HTTP POST로 푸시."""
+    """모바일이 dataURL(JPEG)을 HTTP POST로 푸시"""
     svc: YoloService = get_service()
     kind = "fire" if body.kind.lower() == "fire/smoke" else body.kind.lower()
 
@@ -252,7 +256,9 @@ async def push_frame_http(body: PushBody):
     all_dets = fire_dets + ppe_dets
     risk = compute_risk(all_dets)
 
-    view = _render_overlay(frame, fire_dets, ppe_dets)
+    view = _render_overlay(frame, fire_dets, ppe_dets,
+                           bool(getattr(svc, "fire", None)),
+                           bool(getattr(svc, "ppe", None)))
     data_url = _encode_data_url(view)
 
     await _broadcast({"type": "frame", "image": data_url, "detections": all_dets, "risk": risk})
@@ -261,18 +267,17 @@ async def push_frame_http(body: PushBody):
 
     return {"ok": True, "risk": risk}
 
-# ==============================================================
+# ============================================================== 
 # 모바일 Push (WebSocket: 바이너리 JPEG) — 고성능
 # ==============================================================
 @router.websocket("/push-ws")
 async def ws_push(ws: WebSocket):
-    """모바일이 캔버스->JPEG 바이너리를 WebSocket으로 푸시."""
+    """모바일이 캔버스->JPEG 바이너리를 WebSocket으로 푸시"""
     await ws.accept()
     svc: YoloService = get_service()
 
     try:
         while True:
-            # 이진 프레임 수신
             data: bytes = await ws.receive_bytes()
 
             arr = np.frombuffer(data, np.uint8)
@@ -285,21 +290,25 @@ async def ws_push(ws: WebSocket):
             all_dets = fire_dets + ppe_dets
             risk = compute_risk(all_dets)
 
-            view = _render_overlay(frame, fire_dets, ppe_dets)
+            view = _render_overlay(frame, fire_dets, ppe_dets,
+                                   bool(getattr(svc, "fire", None)),
+                                   bool(getattr(svc, "ppe", None)))
             data_url = _encode_data_url(view)
 
             payload = {"type": "frame", "image": data_url, "detections": all_dets, "risk": risk}
-            await _broadcast(payload)     # 시청자들에게
+            await _broadcast(payload)     # 시청자들에게 전달
             await ws.send_json(payload)   # 보낸 클라이언트에도 회신(미리보기)
 
             if risk["level"] in ("High", "Critical"):
-                await _broadcast({
-                    "type": "alert",
-                    "severity": risk["level"],
-                    "message": "실시간 위험 감지",
-                    "risk": risk,
-                    "detections": all_dets,
-                })
+                await _broadcast(
+                    {
+                        "type": "alert",
+                        "severity": risk["level"],
+                        "message": "실시간 위험 감지",
+                        "risk": risk,
+                        "detections": all_dets,
+                    }
+                )
 
     except WebSocketDisconnect:
         pass
