@@ -20,11 +20,11 @@ export default function Index() {
               예측 기반 안전 인사이트 — 실시간 감지와 AI 리포팅의 만남
             </div>
             <h1 className="text-balance text-4xl font-extrabold tracking-tight md:text-5xl">
-              SafeScope: 스마트하고 친근한 산업 안전
+              SafeScope:<br/>산업안전 위험 예측
             </h1>
-            <div className="mt-3 inline-flex items-center gap-2 rounded-md border bg-white/70 p-1 text-xs shadow-sm">
+            {/* <div className="mt-3 inline-flex items-center gap-2 rounded-md border bg-white/70 p-1 text-xs shadow-sm">
               <ModeToggle />
-            </div>
+            </div> */}
             <p className="mt-4 max-w-prose text-lg text-muted-foreground">
               보호장비 감지, 위험 요소 식별, 작업장 리스크 시각화를 현대적이고 직관적인 디자인으로 제공합니다.
             </p>

@@ -6,9 +6,9 @@ export default function SiteFooter() {
           © {new Date().getFullYear()} SafeScope. All rights reserved.
         </p>
         <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <a href="/about" className="hover:text-foreground">
+          {/* <a href="/about" className="hover:text-foreground">
             About
-          </a>
+          </a> */}
           <a href="/forum" className="hover:text-foreground">
             Community
           </a>

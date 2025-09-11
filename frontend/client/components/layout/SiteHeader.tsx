@@ -43,9 +43,9 @@ export default function SiteHeader() {
           <NavLink to="/" className={navItemClass} end>
             Home
           </NavLink>
-          <NavLink to="/about" className={navItemClass}>
+          {/* <NavLink to="/about" className={navItemClass}>
             About
-          </NavLink>
+          </NavLink> */}
           <NavLink to="/risk-report" className={navItemClass}>
             <BarChart3 className="mr-1 h-4 w-4" /> Report
           </NavLink>
