@@ -7,15 +7,15 @@ const r = (p: string) => path.resolve(__dirname, p);
 
 // NGROK_HOST 환경변수에 프론트 ngrok 도메인 넣어두면(HMR 안정)
 // 예: NGROK_HOST=abcd-1234.ngrok-free.app
-const NGROK_HOST = process.env.NGROK_HOST || "";
+const H = process.env.NGROK_HOST || "";
 
-export default defineConfig(({ mode }) => ({
-  // ✅ dev/build 모두 client를 루트로 사용
+
+export default defineConfig(() => ({
+  // SPA 코드 루트
   root: r("client"),
 
   server: {
-    // ✅ 외부 접속 허용(ngrok에서 들어올 수 있게)
-    host: true, // 또는 "0.0.0.0"
+    host: "::",              // 외부 접속 허용 (ngrok에서 접근 가능)
     port: 5173,
 
     fs: {
@@ -23,13 +23,13 @@ export default defineConfig(({ mode }) => ({
       deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "server/**"],
     },
 
-    // ✅ FastAPI 프록시 (REST + WebSocket)
+    // FastAPI 프록시 (REST + WebSocket)
     proxy: {
       "/api": {
         target: "http://127.0.0.1:8000",
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/api/, ""),
-        ws: true, // ← WebSocket 프록시 ON
+        ws: true,
       },
       "/uploads": {
         target: "http://127.0.0.1:8000",
@@ -37,24 +37,22 @@ export default defineConfig(({ mode }) => ({
       },
     },
 
-    // ✅ ngrok(HTTPS)로 접속할 때 HMR(WebSocket)도 wss로 붙도록
-    // NGROK_HOST를 지정한 경우에만 적용 (로컬은 기본값 사용)
-    hmr: NGROK_HOST
+    // ngrok HTTPS에서 HMR이 wss:443으로 붙도록
+    hmr: H
       ? {
-          host: NGROK_HOST,  // ex) abcd-1234.ngrok-free.app
+          host: H,         // 예: abcd1234.ngrok-free.app
           protocol: "wss",
-          clientPort: 443,
+          clientPort: 443, // ← 오타 주의(433 아님)
         }
-      : undefined,
+      : true,
   },
 
-  // ✅ 빌드 산출물(client 기준) → 상위 dist/spa
   build: {
     outDir: "../dist/spa",
     emptyOutDir: true,
   },
 
-  plugins: [react(), expressPlugin()],
+  plugins: [react()],
 
   resolve: {
     alias: {
@@ -62,6 +60,7 @@ export default defineConfig(({ mode }) => ({
       "@shared": r("shared"),
     },
   },
+
 
   // (선택) vite preview에서도 프록시 쓰고 싶으면 아래 추가
   // preview: {

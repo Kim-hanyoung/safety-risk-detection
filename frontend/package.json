@@ -12,6 +12,7 @@
   },
   "scripts": {
     "dev": "vite",
+    "dev:auto-ngrok": "powershell -ExecutionPolicy Bypass -File ./scripts/dev.ps1",
     "build": "npm run build:client && npm run build:server",
     "build:client": "vite build",
     "build:server": "vite build --config vite.config.server.ts",
