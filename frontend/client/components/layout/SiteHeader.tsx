@@ -65,12 +65,6 @@ export default function SiteHeader() {
             <RiskLevelBadge level={risk} small />
             <Notifications />
           </div>
-          <button
-            onClick={() => setLang((l) => (l === "EN" ? "KR" : "EN"))}
-            className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-accent"
-          >
-            <Languages className="h-4 w-4" /> {lang}
-          </button>
           <Button
             asChild
             size="sm"
