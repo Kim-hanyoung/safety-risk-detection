@@ -5,6 +5,7 @@ import { Link } from "react-router-dom";
 import { AboutDialog } from "@/components/AboutDialog";
 // 상대 경로는 프로젝트 설정에 맞춰 유지
 import TableauEmbed from "../components/TableauEmbed";
+import SlideImage from "@/components/SlideImage";
 
 export default function Index() {
   return (
@@ -38,19 +39,8 @@ export default function Index() {
             </div>
           </div>
           <div className="relative">
-            <div className="absolute -left-6 -top-6 hidden rounded-xl bg-white/60 p-3 shadow-lg ring-1 ring-border/60 backdrop-blur md:block">
-              <HardHat className="h-8 w-8 text-primary animate-bounce" />
-            </div>
-            <div className="absolute -right-6 top-14 hidden rounded-xl bg-white/60 p-3 shadow-lg ring-1 ring-border/60 backdrop-blur md:block">
-              <TrafficCone className="h-8 w-8 text-orange-500 animate-pulse" />
-            </div>
-            <div className="absolute -bottom-6 right-10 hidden rounded-xl bg-white/60 p-3 shadow-lg ring-1 ring-border/60 backdrop-blur md:block">
-              <Shield className="h-8 w-8 text-emerald-500 animate-spin [animation-duration:6s]" />
-            </div>
-            <img
-              src="https://images.unsplash.com/photo-1541959833400-049d37f98c67?q=80&w=1600&auto=format&fit=crop"
-              alt="Workers in safety gear"
-              className="aspect-video w-full rounded-xl object-cover shadow-xl ring-1 ring-border/70"
+
+            <SlideImage
             />
             <AboutDialog inline />
           </div>
