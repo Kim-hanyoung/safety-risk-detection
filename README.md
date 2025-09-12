@@ -34,14 +34,17 @@
 
 ## 📦 설치 방법
 
-1. 레포지토리 클론
+### 1. 레포지토리 클론
 
+```bash
 git clone [해당 레파지토리 주소]
+```
 
-2. 백엔드 환경 변수 설정
+### 2. 백엔드 환경 변수 설정
 
 /backend/.env 파일 생성 후 아래 내용 입력:
 
+```bash
 YOLO_FIRE_SMOKE_WEIGHTS=weights/firesmokebest.pt
 YOLO_FIRE_SMOKE_LABELS_JSON=weights/firesmokelabels.json
 
@@ -54,32 +57,40 @@ ALLOW_ORIGINS=["*"]
 
 GEMINI_API_KEY=
 GEMINI_MODEL=gemini-1.5-flash
+```
 
-3. 프런트엔드 실행
+### 3. 프런트엔드 실행
 
+```bash
 # Node.js 설치 후
 cd frontend
 npm install vite
 npm run dev
+```
 
-4. 백엔드 실행
+### 4. 백엔드 실행
 
+```bash
 # Python 3.13 환경 추천
 cd backend
 pip install -r requirements.txt
 # PyJWT 설치 확인
 pip install uvicorn
 uvicorn app.main:app --reload --port 8000 --host 0.0.0.0
+```
 
-5. 모바일 카메라 연동
+### 5. 모바일 카메라 연동
 
+```bash
 # ngrok 설치 및 인증
 ngrok http 5173 --host-header=rewrite
 # 생성된 주소 뒤에 /mobile-stream 추가 후 모바일로 접속
 # 정상 연결 시 /video-detected "WS: Connected" 메시지 확인
+```
 
 ## 📁 프로젝트 구조
 
+```bash
 ├── backend
 │   ├── app
 │   │   ├── core
@@ -113,14 +124,15 @@ ngrok http 5173 --host-header=rewrite
 │   └── shared
 ├── README.md
 └── .env
+```
 
 ## 📊 사용 데이터셋
 
 | 이름                 | 설명                          | 출처             |
 |----------------------|-------------------------------|------------------|
-| 전기 설비 공사 위험 판단 | 산업 현장의 위험 요소 이미지     | [AIHub](https://aihub.or.kr) |
+| 전기 설비 공사 위험 판단 | 산업 현장의 위험 요소 이미지     | [AIHub](https://aihub.or.kr/aihubdata/data/view.do?pageIndex=1&currMenu=&topMenu=&srchOptnCnd=OPTNCND001&searchKeyword=%EC%A0%84%EA%B8%B0+%EC%84%A4%EB%B9%84&srchDetailCnd=DETAILCND001&srchOrder=ORDER001&srchPagePer=80&srchDataRealmCode=REALM005&aihubDataSe=data&dataSetSn=71771) |
 | 화재 및 연기 감지       | YOLO 기반 화재/연기 이미지       | [Kaggle](https://www.kaggle.com/datasets/sayedgamal99/smoke-fire-detection-yolo) |
-| 산업 재해 통계         | 산업 재해 발생 현황 통계         | [산업안전포털](https://portal.kosha.or.kr) |
+| 산업 재해 통계         | 산업 재해 발생 현황 통계         | [산업안전포털](https://portal.kosha.or.kr/archive/indus-acc-statis/indus-status-data) |
 
 
 ## 🗓️ 프로젝트 기간
